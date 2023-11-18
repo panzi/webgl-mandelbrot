@@ -14,6 +14,30 @@ function toFloatStr(value) {
     return str;
 }
 
+function throttle(func, delay) {
+    let args = null;
+    let self = null;
+    let timer = null;
+    let called = false;
+
+    return function () {
+        args = arguments;
+        self = this;
+        if (timer === null) {
+            called = false;
+            timer = setTimeout(function () {
+                timer = null;
+                if (called) {
+                    func.apply(self, args);
+                }
+            }, delay);
+            func.apply(self, args);
+        } else {
+            called = true;
+        }
+    };
+}
+
 const params = new URLSearchParams(location.search);
 
 const iterationsParam = params.get('iterations');
@@ -24,6 +48,8 @@ const DEFAULT_THRESHOLD = 4.0;
 
 const ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 const THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
+
+const ZOOM_FACTOR = 1.25;
 
 const vertexCode = `\
 #version 300 es
@@ -100,6 +126,7 @@ window.ondblclick = toggleFullscreen;
 resizeCanvas();
 
 let grabbing = false;
+let touching = false;
 
 const mousePos = {
     x: 0,
@@ -155,6 +182,7 @@ function showCursor() {
 }
 
 window.onmousedown = function (event) {
+    if (touching) return;
     canvas.classList.add('grabbing');
     canvas.classList.remove('cursorHidden');
     fps.classList.remove('hidden');
@@ -168,7 +196,9 @@ window.onmousedown = function (event) {
 
 window.onmouseup = function (event) {
     setUrlHash();
-    fps.classList.add('hidden');
+    if (!touching) {
+        fps.classList.add('hidden');
+    }
     showCursor();
     grabbing = false;
     canvas.classList.remove('grabbing');
@@ -187,7 +217,116 @@ window.onmousemove = function (event) {
     mousePos.y = y;
 };
 
-const ZOOM_FACTOR = 1.25;
+/**
+ * @type {Map<number, { x: number, y: number }>}
+ */
+const activeTouches = new Map();
+const activeCenter = { x: 0, y: 0, size: 0 };
+
+function refreshActviveCenter() {
+    const touches = Array.from(activeTouches.values());
+    let xsum = 0;
+    let ysum = 0;
+    let maxSize = 0;
+    for (let index = 0; index < touches.length; ++ index) {
+        const { x, y } = touches[index];
+        xsum += x;
+        ysum += y;
+
+        for (let otherIndex = index + 1; otherIndex < touches.length; ++ otherIndex) {
+            const { x: xo, y: yo } = touches[otherIndex];
+            const dx = xo - x;
+            const dy = yo - y;
+            const size = Math.sqrt(dx*dx + dy*dy);
+            if (size > maxSize) {
+                maxSize = size;
+            }
+        }
+    }
+
+    activeCenter.x = xsum / activeTouches.size;
+    activeCenter.y = ysum / activeTouches.size;
+    activeCenter.size = maxSize;
+}
+
+/**
+ * @param {TouchEvent} event 
+ */
+window.ontouchstart = function (event) {
+    if (grabbing) return;
+    touching = true;
+    fps.classList.remove('hidden');
+
+    for (const touch of event.changedTouches) {
+        const x = touch.clientX * window.devicePixelRatio;
+        const y = touch.clientY * window.devicePixelRatio;
+        activeTouches.set(touch.identifier, { x, y });
+    }
+
+    refreshActviveCenter();
+};
+
+/**
+ * @param {TouchEvent} event 
+ */
+window.ontouchmove = function (event) {
+    if (!touching) return;
+
+    const touchCount1 = activeTouches.size;
+    const { x: x1, y: y1, size: size1 } = activeCenter;
+
+    for (const touch of event.changedTouches) {
+        const x = touch.clientX * window.devicePixelRatio;
+        const y = touch.clientY * window.devicePixelRatio;
+        activeTouches.set(touch.identifier, { x, y });
+    }
+
+    refreshActviveCenter();
+
+    const touchCount2 = activeTouches.size;
+    const { x: x2, y: y2, size: size2 } = activeCenter;
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    viewPort.x -= dx / canvas.height * viewPort.z;
+    viewPort.y += dy / canvas.height * viewPort.z;
+
+    if (touchCount1 > 1 && touchCount2 > 1 && size1 !== 0 && size2 !== 0) {
+        const scale = size1 / size2;
+        const dx = (x2 - canvas.width  * 0.5) / canvas.height;
+        const dy = (y2 - canvas.height * 0.5) / canvas.height;
+        const z1 = viewPort.z;
+        const z2 = z1 * scale;
+        viewPort.x += dx * z1 - dx * z2;
+        viewPort.y -= dy * z1 - dy * z2;
+        viewPort.z = z2;
+    }
+
+    redraw();
+
+};
+
+/**
+ * @param {TouchEvent} event 
+ */
+function handleTouchEnd (event) {
+    setUrlHash();
+
+    for (const touch of event.changedTouches) {
+        activeTouches.delete(touch.identifier);
+    }
+
+    if (activeTouches.size === 0) {
+        touching = false;
+        if (!grabbing) {
+            fps.classList.add('hidden');
+        }
+    }
+}
+
+window.ontouchend = handleTouchEnd;
+window.ontouchcancel = handleTouchEnd;
 
 window.onkeydown = function (event) {
     switch (event.key) {
@@ -242,8 +381,8 @@ window.onwheel = function (event) {
         return;
     }
 
-    const z0 = viewPort.z;
-    const z = event.deltaY < 0 ? z0 / ZOOM_FACTOR : z0 * ZOOM_FACTOR;
+    const z1 = viewPort.z;
+    const z2 = event.deltaY < 0 ? z1 / ZOOM_FACTOR : z1 * ZOOM_FACTOR;
 
     const x = event.clientX * window.devicePixelRatio;
     const y = event.clientY * window.devicePixelRatio;
@@ -251,9 +390,9 @@ window.onwheel = function (event) {
     const dx = (x - canvas.width  * 0.5) / canvas.height;
     const dy = (y - canvas.height * 0.5) / canvas.height;
 
-    viewPort.x += dx * z0 - dx * z;
-    viewPort.y -= dy * z0 - dy * z;
-    viewPort.z = z;
+    viewPort.x += dx * z1 - dx * z2;
+    viewPort.y -= dy * z1 - dy * z2;
+    viewPort.z = z2;
 
     setUrlHash();
     redraw();
