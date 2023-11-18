@@ -4,7 +4,7 @@ const vertexCode = `\
 in vec4 vertexPosition;
 
 void main() {
-  gl_Position = vertexPosition;
+    gl_Position = vertexPosition;
 }
 `;
 
@@ -23,27 +23,28 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 void main() {
-  vec2 z = vec2(0.0, 0.0);
-  float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
-  float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
+    vec2 z = vec2(0.0, 0.0);
+    float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
+    float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
 
-  for (int i = 0; i < 1000; ++ i) {
-    float zx = z.x*z.x - z.y*z.y + x;
-    z.y = 2.0 * z.x*z.y + y;
-    z.x = zx;
-    if (abs(zx) > 4.0) {
-      float v = float(i) / 1000.0;
+    for (int i = 0; i < 500; ++ i) {
+        float zx = z.x*z.x - z.y*z.y + x;
+        z.y = 2.0 * z.x*z.y + y;
+        z.x = zx;
+        if (abs(zx) > 4.0) {
+            float v = float(i) / 200.0;
 
-      fragColor.xyz = hsv2rgb(vec3(mod(v + 0.6, 1.0), 0.75, 1.0));
-      fragColor.w = 1.0;
-      return;
+            fragColor.xyz = hsv2rgb(vec3(mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
+            fragColor.w = 1.0;
+            return;
+        }
     }
-  }
-  fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 `;
 
 const canvas = document.getElementById("canvas");
+const fps = document.getElementById("fps");
 
 let redraw;
 
@@ -52,22 +53,6 @@ function resizeCanvas() {
     canvas.style.height = `${window.innerHeight}px`;
     canvas.width  = window.devicePixelRatio * window.innerWidth;
     canvas.height = window.devicePixelRatio * window.innerHeight;
-}
-
-function throttle(func, delay) {
-    let args;
-    let self;
-    let timer = null;
-    return function () {
-        args = arguments;
-        self = this;
-        if (timer === null) {
-            timer = setTimeout(function () {
-                timer = null;
-                func.apply(this, args);
-            }, delay);
-        }
-    };
 }
 
 window.onresize = function () {
@@ -79,7 +64,7 @@ function toggleFullscreen() {
     if (document.fullscreenElement) {
         document.exitFullscreen();
     } else {
-        canvas.requestFullscreen();
+        document.body.requestFullscreen();
     }
 }
 
@@ -124,6 +109,7 @@ function showCursor() {
 window.onmousedown = function (event) {
     canvas.classList.add('grabbing');
     canvas.classList.remove('cursorHidden');
+    fps.classList.remove('hidden');
     if (hideCursorTimer !== null) {
         clearTimeout(hideCursorTimer);
     }
@@ -133,12 +119,13 @@ window.onmousedown = function (event) {
 };
 
 window.onmouseup = function (event) {
+    fps.classList.add('hidden');
     showCursor();
     grabbing = false;
     canvas.classList.remove('grabbing');
 }
 
-window.onmousemove = throttle(function (event) {
+window.onmousemove = function (event) {
     showCursor();
     const x = event.clientX * window.devicePixelRatio;
     const y = event.clientY * window.devicePixelRatio;
@@ -149,11 +136,11 @@ window.onmousemove = throttle(function (event) {
     }
     mousePos.x = x;
     mousePos.y = y;
-}, 50);
+};
 
 const ZOOM_FACTOR = 1.25;
 
-window.onkeyup = function (event) {
+window.onkeydown = function (event) {
     switch (event.key) {
         case '+':
             viewPort.z /= ZOOM_FACTOR;
@@ -262,6 +249,8 @@ function setup() {
     const canvasSizeUniform = gl.getUniformLocation(program, 'canvasSize');
     const viewPortUniform = gl.getUniformLocation(program, 'viewPort');
 
+    let timestamp = Date.now();
+
     redraw = function redraw() {
         const cw = canvas.width;
         const ch = canvas.height;
@@ -280,6 +269,12 @@ function setup() {
         );
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length);
+
+        const now = Date.now();
+        const duration = (now - timestamp) / 1000;
+        const fpsVal = 1 / duration;
+        fps.innerHTML = `${fpsVal > 1.0 ? Math.round(fpsVal) : fpsVal.toFixed(1)} fps`;
+        timestamp = now;
     }
 }
 

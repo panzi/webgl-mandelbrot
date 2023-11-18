@@ -25,14 +25,28 @@ canvas.cursorHidden {
   cursor: none;
 }
 body, html, canvas {
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE 10 and IE 11 */
-  user-select: none; /* Standard syntax */
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+#fps {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0.5em;
+  font-size: 18px;
+  font-family: sans-serif;
+  color: white;
+  text-shadow: 1px 1px black;
+}
+.hidden {
+  display: none;
 }
 </style>
 </head>
 <body ondragstart="return false;" ondrop="return false;">
 <canvas id="canvas"></canvas>
+<div id="fps" class="hidden">X fps</div>
 <script src="mandelbrot.js"></script>
 </body>
 </html>
