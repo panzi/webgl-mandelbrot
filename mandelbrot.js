@@ -1,3 +1,30 @@
+function clamp(value, min, max) {
+    return value < min ? min : value > max ? max : value;
+}
+
+function nanColesce(value, defaultValue) {
+    return isNaN(value) ? defaultValue : value;
+}
+
+function toFloatStr(value) {
+    const str = String(value);
+    if (!str.includes('.') && !str.includes('e')) {
+        return str + '.0';
+    }
+    return str;
+}
+
+const params = new URLSearchParams(location.search);
+
+const iterationsParam = params.get('iterations');
+const thresholdParam = params.get('threshold');
+
+const DEFAULT_ITERATIONS = 500;
+const DEFAULT_THRESHOLD = 4.0;
+
+const ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
+const THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
+
 const vertexCode = `\
 #version 300 es
 
@@ -27,11 +54,11 @@ void main() {
     float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
 
-    for (int i = 0; i < 500; ++ i) {
+    for (int i = 0; i < ${ITERATIONS}; ++ i) {
         float zx = z.x*z.x - z.y*z.y + x;
         z.y = 2.0 * z.x*z.y + y;
         z.x = zx;
-        if (abs(zx) > 4.0) {
+        if (abs(zx) > ${toFloatStr(THRESHOLD)}) {
             float v = float(i) / 200.0;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
@@ -85,10 +112,31 @@ const viewPort = {
     z: 2.5,
 };
 
+function getUrlHash() {
+    if (location.hash.startsWith('#!')) {
+        const [x, y, z] = location.hash.slice(2).split(',');
+        viewPort.x = nanColesce(+x, viewPort.x);
+        viewPort.y = nanColesce(+y, viewPort.y);
+        viewPort.z = nanColesce(+z, viewPort.z);
+    }
+}
+
+function setUrlHash() {
+    history.replaceState(null, null, `#!${viewPort.x},${viewPort.y},${viewPort.z}`);
+}
+
+getUrlHash();
+
+window.onhashchange = function () {
+    getUrlHash();
+    redraw();
+};
+
 /*
 window.onclick = function (event) {
     viewPort.x += -0.5 * (canvas.width / canvas.height) * viewPort.z + event.clientX * window.devicePixelRatio / canvas.height * viewPort.z;
     viewPort.y -= -0.5 * viewPort.z + event.clientY * window.devicePixelRatio / canvas.height * viewPort.z;
+    setUrlHash();
     redraw();
 };
 */
@@ -119,6 +167,7 @@ window.onmousedown = function (event) {
 };
 
 window.onmouseup = function (event) {
+    setUrlHash();
     fps.classList.add('hidden');
     showCursor();
     grabbing = false;
@@ -144,11 +193,13 @@ window.onkeydown = function (event) {
     switch (event.key) {
         case '+':
             viewPort.z /= ZOOM_FACTOR;
+            setUrlHash();
             redraw();
             break;
 
         case '-':
             viewPort.z *= ZOOM_FACTOR;
+            setUrlHash();
             redraw();
             break;
 
@@ -158,21 +209,25 @@ window.onkeydown = function (event) {
 
         case 'ArrowRight':
             viewPort.x += 0.1 * viewPort.z;
+            setUrlHash();
             redraw();
             break;
 
         case 'ArrowLeft':
             viewPort.x -= 0.1 * viewPort.z;
+            setUrlHash();
             redraw();
             break;
 
         case 'ArrowUp':
             viewPort.y += 0.1 * viewPort.z;
+            setUrlHash();
             redraw();
             break;
 
         case 'ArrowDown':
             viewPort.y -= 0.1 * viewPort.z;
+            setUrlHash();
             redraw();
             break;
 
@@ -200,6 +255,7 @@ window.onwheel = function (event) {
     viewPort.y -= dy * z0 - dy * z;
     viewPort.z = z;
 
+    setUrlHash();
     redraw();
 };
 
