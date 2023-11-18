@@ -58,7 +58,7 @@ void main() {
         float zx = z.x*z.x - z.y*z.y + x;
         z.y = 2.0 * z.x*z.y + y;
         z.x = zx;
-        if (abs(zx) > ${toFloatStr(THRESHOLD)}) {
+        if ((z.x*z.x + z.y*z.y) > ${toFloatStr(THRESHOLD * THRESHOLD)}) {
             float v = float(i) / 200.0;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
@@ -107,7 +107,7 @@ const mousePos = {
 };
 
 const viewPort = {
-    x: -0.25,
+    x: -0.5,
     y: 0,
     z: 2.5,
 };
