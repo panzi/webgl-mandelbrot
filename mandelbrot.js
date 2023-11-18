@@ -34,7 +34,7 @@ void main() {
         if (abs(zx) > 4.0) {
             float v = float(i) / 200.0;
 
-            fragColor.xyz = hsv2rgb(vec3(mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
+            fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
             fragColor.w = 1.0;
             return;
         }
