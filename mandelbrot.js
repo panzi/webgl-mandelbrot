@@ -32,26 +32,31 @@ window.onresize = function () {
     redraw();
 };
 
-window.ondblclick = function () {
+function toggleFullscreen() {
     if (document.fullscreenElement) {
         document.exitFullscreen();
     } else {
         canvas.requestFullscreen();
     }
-};
+}
+
+window.ondblclick = toggleFullscreen;
 
 resizeCanvas();
 
 let grabbing = false;
+
 const mousePos = {
     x: 0,
     y: 0,
 };
+
 const viewPort = {
     x: -0.25,
     y: 0,
     z: 2,
 };
+
 /*
 window.onclick = function (event) {
     viewPort.x += -0.5 * (canvas.width / canvas.height) * viewPort.z + event.clientX * window.devicePixelRatio / canvas.height * viewPort.z;
@@ -59,19 +64,39 @@ window.onclick = function (event) {
     redraw();
 };
 */
+
+let hideCursorTimer = null;
+
+function showCursor() {
+    canvas.classList.remove('cursorHidden');
+    if (hideCursorTimer !== null) {
+        clearTimeout(hideCursorTimer);
+    }
+    hideCursorTimer = setTimeout(function () {
+        hideCursorTimer = null;
+        canvas.classList.add('cursorHidden');
+    }, 1000);
+}
+
 window.onmousedown = function (event) {
-    canvas.className = 'grabbing';
+    canvas.classList.add('grabbing');
+    canvas.classList.remove('cursorHidden');
+    if (hideCursorTimer !== null) {
+        clearTimeout(hideCursorTimer);
+    }
     grabbing = true;
     mousePos.x = event.clientX * window.devicePixelRatio;
     mousePos.y = event.clientY * window.devicePixelRatio;
 };
 
 window.onmouseup = function (event) {
+    showCursor();
     grabbing = false;
-    canvas.className = '';
+    canvas.classList.remove('grabbing');
 }
 
 window.onmousemove = throttle(function (event) {
+    showCursor();
     const x = event.clientX * window.devicePixelRatio;
     const y = event.clientY * window.devicePixelRatio;
     if (grabbing) {
@@ -83,13 +108,57 @@ window.onmousemove = throttle(function (event) {
     mousePos.y = y;
 }, 50);
 
+const ZOOM_FACTOR = 1.25;
+
+window.onkeyup = function (event) {
+    switch (event.key) {
+        case '+':
+            viewPort.z /= ZOOM_FACTOR;
+            redraw();
+            break;
+
+        case '-':
+            viewPort.z *= ZOOM_FACTOR;
+            redraw();
+            break;
+
+        case 'f':
+            toggleFullscreen();
+            break;
+
+        case 'ArrowRight':
+            viewPort.x += 0.1 * viewPort.z;
+            redraw();
+            break;
+
+        case 'ArrowLeft':
+            viewPort.x -= 0.1 * viewPort.z;
+            redraw();
+            break;
+
+        case 'ArrowUp':
+            viewPort.y += 0.1 * viewPort.z;
+            redraw();
+            break;
+
+        case 'ArrowDown':
+            viewPort.y -= 0.1 * viewPort.z;
+            redraw();
+            break;
+
+        default:
+            // console.log(event);
+            break;
+    }
+};
+
 window.onwheel = function (event) {
     if (event.deltaY === 0) {
         return;
     }
 
     const z0 = viewPort.z;
-    const z = event.deltaY < 0 ? z0 * 0.75 : z0 / 0.75;
+    const z = event.deltaY < 0 ? z0 / ZOOM_FACTOR : z0 * ZOOM_FACTOR;
 
     const x = event.clientX * window.devicePixelRatio;
     const y = event.clientY * window.devicePixelRatio;
@@ -173,3 +242,4 @@ function setup() {
 
 setup();
 redraw();
+showCursor();

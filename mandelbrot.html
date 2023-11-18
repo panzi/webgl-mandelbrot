@@ -21,6 +21,9 @@ canvas {
 canvas.grabbing {
   cursor: grabbing;
 }
+canvas.cursorHidden {
+  cursor: none;
+}
 body, html, canvas {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
@@ -62,12 +65,12 @@ body, html, canvas {
     float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
 
-    for (int i = 0; i < 512; ++ i) {
+    for (int i = 0; i < 1000; ++ i) {
       float zx = z.x*z.x - z.y*z.y + x;
       z.y = 2.0 * z.x*z.y + y;
       z.x = zx;
       if (abs(zx) > 4.0) {
-        float v = float(i) / 512.0;
+        float v = float(i) / 1000.0;
 
         fragColor.xyz = hsv2rgb(vec3(mod(v + 0.6, 1.0), 0.75, 1.0));
         fragColor.w = 1.0;
