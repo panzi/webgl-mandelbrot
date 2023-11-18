@@ -82,7 +82,7 @@ const mousePos = {
 const viewPort = {
     x: -0.25,
     y: 0,
-    z: 2,
+    z: 2.5,
 };
 
 /*
