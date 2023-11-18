@@ -14,30 +14,6 @@ function toFloatStr(value) {
     return str;
 }
 
-function throttle(func, delay) {
-    let args = null;
-    let self = null;
-    let timer = null;
-    let called = false;
-
-    return function () {
-        args = arguments;
-        self = this;
-        if (timer === null) {
-            called = false;
-            timer = setTimeout(function () {
-                timer = null;
-                if (called) {
-                    func.apply(self, args);
-                }
-            }, delay);
-            func.apply(self, args);
-        } else {
-            called = true;
-        }
-    };
-}
-
 const params = new URLSearchParams(location.search);
 
 const iterationsParam = params.get('iterations');
@@ -304,7 +280,6 @@ window.ontouchmove = function (event) {
     }
 
     redraw();
-
 };
 
 /**
