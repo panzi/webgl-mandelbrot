@@ -22,7 +22,7 @@ const animationParam = params.get('animation');
 
 let animationFPS = +params.get('fps', '12');
 
-if (isNaN(animationFPS) || animationFPS < 0) {
+if (isNaN(animationFPS) || animationFPS <= 0) {
     animationFPS = 12;
 } else if (animationFPS > 120) {
     animationFPS = 120;
@@ -393,6 +393,10 @@ window.onkeydown = function (event) {
             redraw();
             break;
 
+        case 'Escape':
+            stopAnimation();
+            break;
+
         default:
             // console.log(event);
             break;
@@ -496,7 +500,17 @@ function setup() {
     }
 }
 
+function stopAnimation() {
+    console.log("stopping animation");
+    if (animationTimer !== null) {
+        clearInterval(animationTimer);
+        animationTimer = null;
+    }
+    animating = false;
+}
+
 function playAnimation() {
+    console.log("starting animation...");
     if (animationTimer !== null) {
         clearInterval(animationTimer);
         animationTimer = null;
@@ -508,6 +522,7 @@ function playAnimation() {
     redraw();
 
     if (ANIMATION.length < 2) {
+        animating = false;
         return;
     }
 
@@ -531,7 +546,7 @@ function playAnimation() {
                 animating = false;
                 animationTimer = null;
             }
-        } else if (x1 == x2 && y1 == y2 && z1 == z2) {
+        } else if (x1 === x2 && y1 === y2 && z1 === z2) {
             return;
         } else {
             interp = (
