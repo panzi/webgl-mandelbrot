@@ -194,8 +194,11 @@ function showCursor() {
     }, 1000);
 }
 
+/**
+ * @param {MouseEvent} event 
+ */
 window.onmousedown = function (event) {
-    if (touching || animating) return;
+    if (touching || animating || !(event.buttons & 1)) return;
     canvas.classList.add('grabbing');
     canvas.classList.remove('cursorHidden');
     fps.classList.remove('hidden');
@@ -207,7 +210,11 @@ window.onmousedown = function (event) {
     mousePos.y = event.clientY * window.devicePixelRatio;
 };
 
+/**
+ * @param {MouseEvent} event 
+ */
 window.onmouseup = function (event) {
+    if (!grabbing || (event.buttons & 1)) return;
     setUrlHash();
     if (!touching) {
         fps.classList.add('hidden');
