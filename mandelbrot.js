@@ -18,12 +18,38 @@ const params = new URLSearchParams(location.search);
 
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
+const animationParam = params.get('animation');
+
+let animationFPS = +params.get('fps', '12');
+
+if (isNaN(animationFPS) || animationFPS < 0) {
+    animationFPS = 12;
+} else if (animationFPS > 120) {
+    animationFPS = 120;
+}
 
 const DEFAULT_ITERATIONS = 500;
 const DEFAULT_THRESHOLD = 4.0;
-
+// file:///home/panzi/src/html/mandelbrot/index.html?animation=-0.8269631235223067,-0.7110330380891499,18.62645149230957%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,5000%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,1000%20-0.8269631235223067,-0.7110330380891499,18.62645149230957,5000
 const ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 const THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
+const ANIMATION = animationParam ? animationParam.split(/\s+/).map(pos => {
+    const step = pos ? pos.split(',').map(Number) : [];
+    const [x, y, z, d] = step;
+    if (isNaN(x)) {
+        step[0] = -0.5;
+    }
+    if (isNaN(y)) {
+        step[1] = 0;
+    }
+    if (isNaN(z) || z <= 0) {
+        step[2] = 2.5;
+    }
+    if (isNaN(d) || d < 0) {
+        step[3] = 1000;
+    }
+    return step;
+}) : null;
 
 const ZOOM_FACTOR = 1.25;
 
@@ -104,6 +130,8 @@ resizeCanvas();
 
 let grabbing = false;
 let touching = false;
+let animating = false;
+let animationTimer = null;
 
 const mousePos = {
     x: 0,
@@ -147,6 +175,14 @@ window.onclick = function (event) {
 
 let hideCursorTimer = null;
 
+function hideCursor() {
+    if (hideCursorTimer !== null) {
+        clearTimeout(hideCursorTimer);
+        hideCursorTimer = null;
+    }
+    canvas.classList.add('cursorHidden');
+}
+
 function showCursor() {
     canvas.classList.remove('cursorHidden');
     if (hideCursorTimer !== null) {
@@ -159,7 +195,7 @@ function showCursor() {
 }
 
 window.onmousedown = function (event) {
-    if (touching) return;
+    if (touching || animating) return;
     canvas.classList.add('grabbing');
     canvas.classList.remove('cursorHidden');
     fps.classList.remove('hidden');
@@ -176,13 +212,17 @@ window.onmouseup = function (event) {
     if (!touching) {
         fps.classList.add('hidden');
     }
-    showCursor();
+    if (!animating) {
+        showCursor();
+    }
     grabbing = false;
     canvas.classList.remove('grabbing');
 }
 
 window.onmousemove = function (event) {
-    showCursor();
+    if (!animating) {
+        showCursor();
+    }
     const x = event.clientX * window.devicePixelRatio;
     const y = event.clientY * window.devicePixelRatio;
     if (grabbing) {
@@ -230,7 +270,7 @@ function refreshActviveCenter() {
  * @param {TouchEvent} event 
  */
 window.ontouchstart = function (event) {
-    if (grabbing) return;
+    if (grabbing || animating) return;
     touching = true;
     fps.classList.remove('hidden');
 
@@ -449,10 +489,67 @@ function setup() {
     }
 }
 
-try {
-    setup();
+function playAnimation() {
+    if (animationTimer !== null) {
+        clearInterval(animationTimer);
+        animationTimer = null;
+    }
+
+    viewPort.x = ANIMATION[0][0];
+    viewPort.y = ANIMATION[0][1];
+    viewPort.z = ANIMATION[0][2];
     redraw();
-    showCursor();
+
+    if (ANIMATION.length < 2) {
+        return;
+    }
+
+    animating = true;
+    hideCursor();
+    let animationIndex = 0;
+    let timestamp = Date.now();
+    animationTimer = setInterval(function () {
+        const now = Date.now();
+        const [x1, y1, z1, _] = ANIMATION[animationIndex];
+        const [x2, y2, z2, d] = ANIMATION[animationIndex + 1];
+        let interp = (now - timestamp) / d;
+        if (interp > 1) {
+            viewPort.x = x2;
+            viewPort.y = y2;
+            viewPort.z = z2;
+            timestamp = now;
+            ++ animationIndex;
+            if (animationIndex + 1 >= ANIMATION.length) {
+                clearInterval(animationTimer);
+                animating = false;
+                animationTimer = null;
+            }
+        } else if (x1 == x2 && y1 == y2 && z1 == z2) {
+            return;
+        } else {
+            interp = (
+                z1 > z2 ? 1.0 - Math.pow(1.0 - interp, 16) :
+                z1 < z2 ? Math.pow(interp, 16) :
+                interp
+            );
+            const inv = 1.0 - interp;
+            viewPort.x = x1 * inv + x2 * interp;
+            viewPort.y = y1 * inv + y2 * interp;
+            viewPort.z = z1 * inv + z2 * interp;
+        }
+        redraw();
+    }, 1000/animationFPS);
+}
+
+try {
+    if (ANIMATION) {
+        setup();
+        playAnimation();
+    } else {
+        setup();
+        redraw();
+        showCursor();
+    }
 } catch (error) {
     console.error(error);
     alert(`Error initializing: ${error}`);
