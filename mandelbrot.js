@@ -14,11 +14,40 @@ function toFloatStr(value) {
     return str;
 }
 
+function throttle(func, delay) {
+    let args = null;
+    let self = null;
+    let timer = null;
+
+    return function () {
+        if (timer === null) {
+            timer = setTimeout(function () {
+                timer = null;
+                try {
+                    if (args !== null) {
+                        func.apply(self, args);
+                    }
+                } finally {
+                    args = null;
+                    self = null;
+                }
+            }, delay);
+            args = null;
+            self = null;
+            func.apply(this, arguments);
+        } else {
+            args = arguments;
+            self = this;
+        }
+    };
+}
+
 const params = new URLSearchParams(location.search);
 
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
+const fractalParam = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 
 let animationFPS = +params.get('fps', '12');
 
@@ -33,23 +62,48 @@ const DEFAULT_THRESHOLD = 4.0;
 // file:///home/panzi/src/html/mandelbrot/index.html?animation=-0.8269631235223067,-0.7110330380891499,18.62645149230957%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,5000%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,1000%20-0.8269631235223067,-0.7110330380891499,18.62645149230957,5000
 const ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 const THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
-const ANIMATION = animationParam ? animationParam.split(/\s+/).map(pos => {
-    const step = pos ? pos.split(',').map(Number) : [];
-    const [x, y, z, d] = step;
-    if (isNaN(x)) {
-        step[0] = -0.5;
+const ANIMATION = animationParam ? animationParam.split(/\s+/).map(fractalParam === 'julia' ?
+    item => {
+        const step = item ? item.split(',').map(Number) : [];
+        let [x, y, z, cr, ci, d] = step;
+        if (isNaN(x)) {
+            x = -0.5;
+        }
+        if (isNaN(y)) {
+            y = 0;
+        }
+        if (isNaN(z) || z <= 0) {
+            z = 2.5;
+        }
+        if (isNaN(cr) || cr <= 0) {
+            cr = -0.744;
+        }
+        if (isNaN(ci) || ci <= 0) {
+            ci = 0.148;
+        }
+        if (isNaN(d) || d < 0) {
+            d = 1000;
+        }
+        return { x, y, z, cr, ci, d };
+    } :
+    item => {
+        const step = item ? item.split(',').map(Number) : [];
+        const [x, y, z, d] = step;
+        if (isNaN(x)) {
+            x = -0.5;
+        }
+        if (isNaN(y)) {
+            y = 0;
+        }
+        if (isNaN(z) || z <= 0) {
+            z = 2.5;
+        }
+        if (isNaN(d) || d < 0) {
+            d = 1000;
+        }
+        return { x, y, z, cr: -0.744, ci: 0.148, d };
     }
-    if (isNaN(y)) {
-        step[1] = 0;
-    }
-    if (isNaN(z) || z <= 0) {
-        step[2] = 2.5;
-    }
-    if (isNaN(d) || d < 0) {
-        step[3] = 1000;
-    }
-    return step;
-}) : null;
+) : null;
 
 const ZOOM_FACTOR = 1.25;
 
@@ -63,7 +117,7 @@ void main() {
 }
 `;
 
-const fragmentCode = `\
+const mandelbrotCode = `\
 #version 300 es
 precision highp float;
 
@@ -83,21 +137,60 @@ void main() {
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
 
     for (int i = 0; i < ${ITERATIONS}; ++ i) {
-        float zx = z.x*z.x - z.y*z.y + x;
-        z.y = 2.0 * z.x*z.y + y;
-        z.x = zx;
         float a = z.x*z.x + z.y*z.y;
-        if (a > ${toFloatStr(THRESHOLD * THRESHOLD)}) {
+        if (a >= ${toFloatStr(THRESHOLD * THRESHOLD)}) {
             float v = (float(i + 1) - log(log(a))) * 0.005;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
             fragColor.w = 1.0;
             return;
         }
+        float zx = z.x*z.x - z.y*z.y + x;
+        z.y = 2.0 * z.x*z.y + y;
+        z.x = zx;
     }
     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 `;
+
+const juliaCode = `\
+#version 300 es
+precision highp float;
+
+uniform vec2 canvasSize;
+uniform vec3 viewPort;
+uniform vec2 c;
+out vec4 fragColor;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
+    float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
+    vec2 z = vec2(x, y);
+
+    for (int i = 0; i < ${ITERATIONS}; ++ i) {
+        float a = z.x*z.x + z.y*z.y;
+        if (a >= ${toFloatStr(THRESHOLD * THRESHOLD)}) {
+            float v = (float(i + 1) - log(log(a))) * 0.005;
+
+            fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
+            fragColor.w = 1.0;
+            return;
+        }
+        float zx = z.x*z.x - z.y*z.y + c.x;
+        z.y = 2.0 * z.x*z.y + c.y;
+        z.x = zx;
+    }
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+`;
+
+const fragmentCode = fractalParam === 'julia' ? juliaCode : mandelbrotCode;
 
 const canvas = document.getElementById("canvas");
 const fps = document.getElementById("fps");
@@ -142,20 +235,31 @@ const viewPort = {
     x: -0.5,
     y: 0,
     z: 2.5,
+    cr: -0.744,
+    ci: 0.148,
 };
+
+if (fractalParam === 'julia') {
+    viewPort.x = 0;
+    viewPort.z = 2;
+}
 
 function getUrlHash() {
     if (location.hash.startsWith('#!')) {
-        const [x, y, z] = location.hash.slice(2).split(',');
+        const [x, y, z, cr, ci] = location.hash.slice(2).split(',');
         viewPort.x = nanColesce(+x, viewPort.x);
         viewPort.y = nanColesce(+y, viewPort.y);
         viewPort.z = nanColesce(+z, viewPort.z);
+        viewPort.cr = nanColesce(+cr, viewPort.cr);
+        viewPort.ci = nanColesce(+ci, viewPort.ci);
     }
 }
 
 function setUrlHash() {
-    history.replaceState(null, null, `#!${viewPort.x},${viewPort.y},${viewPort.z}`);
+    history.replaceState(null, null, `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`);
 }
+
+const throttledSetUrlHash = throttle(setUrlHash, 500);
 
 getUrlHash();
 
@@ -354,60 +458,122 @@ function handleTouchEnd (event) {
 window.addEventListener('touchend', handleTouchEnd, { passive: false });
 window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
+/**
+ * 
+ * @param {KeyboardEvent} event 
+ */
 window.onkeydown = function (event) {
     switch (event.key) {
         case '+':
-            viewPort.z /= ZOOM_FACTOR;
-            setUrlHash();
+            if (event.altKey) {
+                viewPort.ci /= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+            } else if (event.ctrlKey) {
+                viewPort.cr /= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+            } else {
+                viewPort.z /= ZOOM_FACTOR;
+            }
+            throttledSetUrlHash();
             redraw();
+            event.preventDefault();
             break;
 
         case '-':
-            viewPort.z *= ZOOM_FACTOR;
-            setUrlHash();
+            if (event.altKey) {
+                viewPort.ci *= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+            } else if (event.ctrlKey) {
+                viewPort.cr *= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+            } else {
+                viewPort.z *= ZOOM_FACTOR;
+            }
+            throttledSetUrlHash();
             redraw();
+            event.preventDefault();
             break;
 
         case 'f':
             toggleFullscreen();
+            event.preventDefault();
             break;
 
         case 'ArrowRight':
-            viewPort.x += 0.1 * viewPort.z;
-            setUrlHash();
+            if (event.ctrlKey) {
+                viewPort.ci *= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+            } else {
+                viewPort.x += 0.1 * viewPort.z;
+            }
+            throttledSetUrlHash();
             redraw();
+            event.preventDefault();
             break;
 
         case 'ArrowLeft':
-            viewPort.x -= 0.1 * viewPort.z;
-            setUrlHash();
+            if (event.ctrlKey) {
+                viewPort.ci /= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+            } else {
+                viewPort.x -= 0.1 * viewPort.z;
+            }
+            throttledSetUrlHash();
             redraw();
+            event.preventDefault();
             break;
 
         case 'ArrowUp':
-            viewPort.y += 0.1 * viewPort.z;
-            setUrlHash();
+            if (event.ctrlKey) {
+                viewPort.cr *= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+            } else {
+                viewPort.y += 0.1 * viewPort.z;
+            }
+            throttledSetUrlHash();
             redraw();
+            event.preventDefault();
             break;
 
         case 'ArrowDown':
-            viewPort.y -= 0.1 * viewPort.z;
-            setUrlHash();
+            if (event.ctrlKey) {
+                viewPort.cr /= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+            } else {
+                viewPort.y -= 0.1 * viewPort.z;
+            }
+            throttledSetUrlHash();
             redraw();
+            event.preventDefault();
             break;
 
         case 'Escape':
             stopAnimation();
+            event.preventDefault();
             break;
 
         default:
-            // console.log(event);
+            console.log(event);
             break;
     }
 };
 
-window.onwheel = function (event) {
-    if (event.deltaY === 0) {
+const CI_FACTOR = 1.01;
+const CR_FACTOR = 1.001;
+
+const CI_FACTOR_FINE = 1.001;
+const CR_FACTOR_FINE = 1.0001;
+
+/**
+ * @param {WheelEvent} event 
+ */
+window.addEventListener('wheel', function (event) {
+    event.preventDefault();
+
+    if (event.deltaY === 0 || event.altKey || event.metaKey) {
+        return;
+    }
+
+    if (event.ctrlKey || event.shiftKey) {
+        if (event.shiftKey) {
+            viewPort.ci = event.deltaY < 0 ? viewPort.ci / CI_FACTOR : viewPort.ci * CI_FACTOR;
+        } else {
+            viewPort.cr = event.deltaY < 0 ? viewPort.cr / CR_FACTOR : viewPort.cr * CR_FACTOR;
+        }
+        setUrlHash();
+        redraw();
         return;
     }
 
@@ -426,7 +592,7 @@ window.onwheel = function (event) {
 
     setUrlHash();
     redraw();
-};
+}, { passive: false });
 
 function createShader(gl, shaderType, sourceCode) {
     const shader = gl.createShader(shaderType);
@@ -473,6 +639,7 @@ function setup() {
 
     const canvasSizeUniform = gl.getUniformLocation(program, 'canvasSize');
     const viewPortUniform = gl.getUniformLocation(program, 'viewPort');
+    const cUniform = gl.getUniformLocation(program, 'c');
 
     let timestamp = Date.now();
 
@@ -492,6 +659,9 @@ function setup() {
             viewPort.y - 0.5 * viewPort.z,
             viewPort.z
         );
+        if (cUniform) {
+            gl.uniform2f(cUniform, viewPort.cr, viewPort.ci);
+        }
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length);
 
@@ -535,13 +705,15 @@ function playAnimation() {
     let timestamp = Date.now();
     animationTimer = setInterval(function () {
         const now = Date.now();
-        const [x1, y1, z1, _] = ANIMATION[animationIndex];
-        const [x2, y2, z2, d] = ANIMATION[animationIndex + 1];
+        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1, _ } = ANIMATION[animationIndex];
+        const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = ANIMATION[animationIndex + 1];
         let interp = (now - timestamp) / d;
         if (interp > 1) {
             viewPort.x = x2;
             viewPort.y = y2;
             viewPort.z = z2;
+            viewPort.cr = cr2;
+            viewPort.ci = ci2;
             timestamp = now;
             ++ animationIndex;
             if (animationIndex + 1 >= ANIMATION.length) {
@@ -549,7 +721,7 @@ function playAnimation() {
                 animating = false;
                 animationTimer = null;
             }
-        } else if (x1 === x2 && y1 === y2 && z1 === z2) {
+        } else if (x1 === x2 && y1 === y2 && z1 === z2 && cr1 === cr2 && ci1 === ci2) {
             return;
         } else {
             interp = (
@@ -561,6 +733,8 @@ function playAnimation() {
             viewPort.x = x1 * inv + x2 * interp;
             viewPort.y = y1 * inv + y2 * interp;
             viewPort.z = z1 * inv + z2 * interp;
+            viewPort.cr = cr1 * inv + cr2 * interp;
+            viewPort.ci = ci1 * inv + ci2 * interp;
         }
         redraw();
     }, 1000/animationFPS);
