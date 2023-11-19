@@ -88,7 +88,7 @@ void main() {
         z.x = zx;
         float a = z.x*z.x + z.y*z.y;
         if (a > ${toFloatStr(THRESHOLD * THRESHOLD)}) {
-            float v = (float(i + 1) - log(log2(sqrt(a)))) * 0.005;
+            float v = (float(i + 1) - log(log(a))) * 0.005;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
             fragColor.w = 1.0;
