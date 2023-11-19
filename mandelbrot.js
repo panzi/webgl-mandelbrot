@@ -276,7 +276,8 @@ function refreshActviveCenter() {
 /**
  * @param {TouchEvent} event 
  */
-window.ontouchstart = function (event) {
+window.addEventListener('touchstart', function (event) {
+    event.preventDefault();
     if (grabbing || animating) return;
     touching = true;
     fps.classList.remove('hidden');
@@ -288,12 +289,13 @@ window.ontouchstart = function (event) {
     }
 
     refreshActviveCenter();
-};
+}, { passive: false });
 
 /**
  * @param {TouchEvent} event 
  */
-window.ontouchmove = function (event) {
+window.addEventListener('touchmove', function (event) {
+    event.preventDefault();
     if (!touching) return;
 
     const touchCount1 = activeTouches.size;
@@ -328,12 +330,13 @@ window.ontouchmove = function (event) {
     }
 
     redraw();
-};
+}, { passive: false });
 
 /**
  * @param {TouchEvent} event 
  */
 function handleTouchEnd (event) {
+    event.preventDefault();
     setUrlHash();
 
     for (const touch of event.changedTouches) {
@@ -348,8 +351,8 @@ function handleTouchEnd (event) {
     }
 }
 
-window.ontouchend = handleTouchEnd;
-window.ontouchcancel = handleTouchEnd;
+window.addEventListener('touchend', handleTouchEnd, { passive: false });
+window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
 window.onkeydown = function (event) {
     switch (event.key) {
