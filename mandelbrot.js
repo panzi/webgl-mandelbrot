@@ -60,8 +60,9 @@ void main() {
         float zx = z.x*z.x - z.y*z.y + x;
         z.y = 2.0 * z.x*z.y + y;
         z.x = zx;
-        if ((z.x*z.x + z.y*z.y) > ${toFloatStr(THRESHOLD * THRESHOLD)}) {
-            float v = float(i) / 200.0;
+        float a = z.x*z.x + z.y*z.y;
+        if (a > ${toFloatStr(THRESHOLD * THRESHOLD)}) {
+            float v = (float(i + 1) - log(log2(sqrt(a)))) * 0.005;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
             fragColor.w = 1.0;
@@ -448,6 +449,11 @@ function setup() {
     }
 }
 
-setup();
-redraw();
-showCursor();
+try {
+    setup();
+    redraw();
+    showCursor();
+} catch (error) {
+    console.error(error);
+    alert(`Error initializing: ${error}`);
+}
