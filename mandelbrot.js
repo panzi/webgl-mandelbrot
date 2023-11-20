@@ -358,8 +358,15 @@ window.onmousemove = function (event) {
     const x = event.clientX * window.devicePixelRatio;
     const y = event.clientY * window.devicePixelRatio;
     if (grabbing) {
-        viewPort.x -= (x - mousePos.x) / canvas.height * viewPort.z;
-        viewPort.y += (y - mousePos.y) / canvas.height * viewPort.z;
+        const dx = x - mousePos.x;
+        const dy = y - mousePos.y;
+        if (event.ctrlKey && fractalParam === 'julia') {
+            viewPort.cr /= Math.pow(2, dx / canvas.height);
+            viewPort.ci /= Math.pow(2, dy / canvas.height);
+        } else {
+            viewPort.x -= dx / canvas.height * viewPort.z;
+            viewPort.y += dy / canvas.height * viewPort.z;
+        }
         redraw();
     }
     mousePos.x = x;
@@ -398,12 +405,24 @@ function refreshActviveCenter() {
     activeCenter.size = maxSize;
 }
 
+let singleTouchTimestamp = 0;
+
 /**
  * @param {TouchEvent} event 
  */
 window.addEventListener('touchstart', function (event) {
     event.preventDefault();
     if (grabbing || animating) return;
+
+    if (event.touches.length === 1) {
+        const now = Date.now();
+        const dt = now - singleTouchTimestamp;
+        if (dt <= 250) {
+            toggleFullscreen();
+        }
+        singleTouchTimestamp = now;
+    }
+
     touching = true;
     fpsEl.classList.remove('hidden');
 
