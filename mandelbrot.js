@@ -598,7 +598,18 @@ window.onkeydown = function (event) {
                 break;
 
             case 'p':
-                playAnimation();
+                playAnimation(ANIMATION);
+                event.preventDefault();
+                break;
+
+            case 'P':
+                if (ANIMATION) {
+                    const animation = ANIMATION.slice().reverse();
+                    for (let index = animation.length - 2; index >= 0; -- index) {
+                        animation[index + 1].d = animation[index].d;
+                    }
+                    playAnimation(animation);
+                }
                 event.preventDefault();
                 break;
 
@@ -903,15 +914,15 @@ function stopAnimation() {
     animating = false;
 }
 
-function playAnimation() {
+function playAnimation(animation) {
     console.log("starting animation...");
     if (animationTimer !== null) {
         clearInterval(animationTimer);
         animationTimer = null;
     }
 
-    {
-        const item = ANIMATION[0];
+    if (animation && animation.length > 0) {
+        const item = animation[0];
         viewPort.x = item.x;
         viewPort.y = item.y;
         viewPort.z = item.z;
@@ -920,7 +931,7 @@ function playAnimation() {
         redraw();
     }
 
-    if (ANIMATION.length < 2) {
+    if (!animation || animation.length < 2) {
         animating = false;
         return;
     }
@@ -931,8 +942,8 @@ function playAnimation() {
     let timestamp = Date.now();
     animationTimer = setInterval(function () {
         const now = Date.now();
-        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1, _ } = ANIMATION[animationIndex];
-        const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = ANIMATION[animationIndex + 1];
+        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1, _ } = animation[animationIndex];
+        const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = animation[animationIndex + 1];
         let interp = (now - timestamp) / d;
         if (interp > 1) {
             viewPort.x = x2;
@@ -942,7 +953,7 @@ function playAnimation() {
             viewPort.ci = ci2;
             timestamp = now;
             ++ animationIndex;
-            if (animationIndex + 1 >= ANIMATION.length) {
+            if (animationIndex + 1 >= animation.length) {
                 clearInterval(animationTimer);
                 animating = false;
                 animationTimer = null;
@@ -969,7 +980,7 @@ function playAnimation() {
 try {
     setup();
     if (ANIMATION) {
-        playAnimation();
+        playAnimation(ANIMATION);
     } else {
         redraw();
         showCursor();
