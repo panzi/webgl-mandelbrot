@@ -473,6 +473,8 @@ function handleTouchEnd (event) {
         if (!grabbing) {
             fpsEl.classList.add('hidden');
         }
+    } else {
+        refreshActviveCenter();
     }
 }
 
