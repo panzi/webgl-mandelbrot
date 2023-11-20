@@ -7,7 +7,7 @@
 
 <meta name="description" content="A Mandelbrot fractal im GLSL just for fun."/>
 <meta name="author" content="Mathias Panzenböck"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
 
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="A Mandelbrot fractal im GLSL just for fun."/>
@@ -20,50 +20,121 @@
 <meta property="og:image:width" content="960"/>
 <meta property="og:image:height" content="540"/>
 
-<style>
-body, html {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background-color: black;
-  width: 100vw;
-  height: 100vh;
-}
-canvas {
-  margin: 0;
-  image-rendering: pixelated;
-  box-sizing: border-box;
-  cursor: grab;
-}
-canvas.grabbing {
-  cursor: grabbing;
-}
-canvas.cursorHidden {
-  cursor: none;
-}
-body, html, canvas {
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-#fps {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  margin: 0.5em;
-  font-size: 18px;
-  font-family: sans-serif;
-  color: white;
-  text-shadow: 1px 1px black;
-}
-.hidden {
-  display: none;
-}
-</style>
+<meta name="theme-color" content="#0201f7" />
+
+<link rel="stylesheet" href="style.css" />
 </head>
 <body ondragstart="return false;" ondrop="return false;">
 <canvas id="canvas"></canvas>
-<div id="fps" class="hidden">X fps</div>
+<div id="fps" class="message hidden">X fps</div>
+<ol id="messages" class="message"></ol>
+<div id="help" class="message hidden" onmousedown="event.stopPropagation();" ontouchstart="event.stopPropagation();" onwheel="event.stopPropagation();">
+  <h3>Hotkeys</h3>
+  <table>
+    <tbody>
+      <!-- left &#x1F838; -->
+      <!-- right &#x1F83A; -->
+      <!-- up &#x1F839; -->
+      <!-- down &#x1F83B; -->
+      <tr>
+        <td class="hotkey"><kbd>H</kbd></td>
+        <td>Toggle help messge</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>M</kbd></td>
+        <td>Show Mandelbrot set</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>J</kbd></td>
+        <td>Show Julia set</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>+</kbd>, <kbd>Wheel &#x1F839;</kbd></td>
+        <td>Zoom In</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>-</kbd>, <kbd>Wheel &#x1F83B;</kbd></td>
+        <td>Zoom Out</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>&#x1F838;</kbd>, <kbd>&#x1F839;</kbd>, <kbd>&#x1F83B;</kbd>, <kbd>&#x1F838;</kbd>, <kbd>Panning</kbd></td>
+        <td>Navigate</td>
+      </tr>
+      <tr>
+        <td class="hotkey">
+          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F838;</kbd>,<br/>
+          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F83A;</kbd>,<br/>
+          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F839;</kbd>,<br/>
+          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F83B;</kbd>,<br/>
+          <kbd>Ctrl</kbd>/<kbd>Alt</kbd>+<kbd>Wheel &#x1F839;</kbd>,<br/>
+          <kbd>Ctrl</kbd>/<kbd>Alt</kbd>+<kbd>Wheel &#x1F83B;</kbd>
+        </td>
+        <td>
+          Navigate complex parameter for Julia set.
+          <kbd>Shift</kbd> for smaller steps in keyboard navigation.
+          <kbd>Ctrl</kbd>/<kbd>&#x1F838;</kbd>/<kbd>&#x1F83A;</kbd> for the real component,
+          <kbd>Alt</kbd>/<kbd>&#x1F839;</kbd>/<kbd>&#x1F83B;</kbd> for the complex component.
+        </td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>F</kbd>, <kbd>Double Click</kbd></td>
+        <td>Toggle full-screen</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>I</kbd></td>
+        <td>Increase iterations</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Shift</kbd>+<kbd>I</kbd></td>
+        <td>Decrease iterations</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>T</kbd></td>
+        <td>Increase threshold</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Shift</kbd>+<kbd>T</kbd></td>
+        <td>Decrease threshold</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>P</kbd></td>
+        <td>Play animation</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Esc</kbd></td>
+        <td>Stop animation</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>A</kbd></td>
+        <td>Add animation key-frame</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Shift</kbd>+<kbd>A</kbd></td>
+        <td>Remove last animation key-frame</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>U</kbd></td>
+        <td>Update position, complex parameter and zoom of last animation key-frame</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>D</kbd></td>
+        <td>Increase duration of last key-frame by 1 second</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Alt</kbd>+<kbd>D</kbd></td>
+        <td>Increase duration of last key-frame by 100 milliseconds</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Shift</kbd>+<kbd>D</kbd></td>
+        <td>Decrease duration of last key-frame by 1 second</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd></td>
+        <td>Decrease duration of last key-frame by 100 milliseconds</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 <script src="mandelbrot.js"></script>
 </body>
 </html>

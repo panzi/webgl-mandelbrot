@@ -44,64 +44,49 @@ function throttle(func, delay) {
 
 const params = new URLSearchParams(location.search);
 
+const DEFAULT_ITERATIONS = 500;
+const DEFAULT_THRESHOLD = 4.0;
+const DEFAULT_FPS = 12;
+
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
-const fractalParam = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
+let fractalParam = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 
-let animationFPS = +params.get('fps', '12');
+let animationFPS = +params.get('fps', DEFAULT_FPS);
 
-if (isNaN(animationFPS) || animationFPS <= 0) {
-    animationFPS = 12;
+if (!isFinite(animationFPS) || animationFPS <= 0) {
+    animationFPS = DEFAULT_FPS;
 } else if (animationFPS > 120) {
     animationFPS = 120;
 }
 
-const DEFAULT_ITERATIONS = 500;
-const DEFAULT_THRESHOLD = 4.0;
 // file:///home/panzi/src/html/mandelbrot/index.html?animation=-0.8269631235223067,-0.7110330380891499,18.62645149230957%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,5000%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,1000%20-0.8269631235223067,-0.7110330380891499,18.62645149230957,5000
-const ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
-const THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
-const ANIMATION = animationParam ? animationParam.split(/\s+/).map(fractalParam === 'julia' ?
+let ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
+let THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
+let ANIMATION = animationParam ? animationParam.split(/\s+/).map(
     item => {
         const step = item ? item.split(',').map(Number) : [];
-        let [x, y, z, cr, ci, d] = step;
-        if (isNaN(x)) {
+        let [x, y, z, d, cr, ci] = step;
+        if (!isFinite(x)) {
             x = -0.5;
         }
-        if (isNaN(y)) {
+        if (!isFinite(y)) {
             y = 0;
         }
-        if (isNaN(z) || z <= 0) {
+        if (!isFinite(z) || z <= 0) {
             z = 2.5;
         }
-        if (isNaN(cr) || cr <= 0) {
+        if (!isFinite(d) || d < 0) {
+            d = 1000;
+        }
+        if (!isFinite(cr) || cr <= 0) {
             cr = -0.744;
         }
-        if (isNaN(ci) || ci <= 0) {
+        if (!isFinite(ci) || ci <= 0) {
             ci = 0.148;
         }
-        if (isNaN(d) || d < 0) {
-            d = 1000;
-        }
         return { x, y, z, cr, ci, d };
-    } :
-    item => {
-        const step = item ? item.split(',').map(Number) : [];
-        const [x, y, z, d] = step;
-        if (isNaN(x)) {
-            x = -0.5;
-        }
-        if (isNaN(y)) {
-            y = 0;
-        }
-        if (isNaN(z) || z <= 0) {
-            z = 2.5;
-        }
-        if (isNaN(d) || d < 0) {
-            d = 1000;
-        }
-        return { x, y, z, cr: -0.744, ci: 0.148, d };
     }
 ) : null;
 
@@ -117,7 +102,8 @@ void main() {
 }
 `;
 
-const mandelbrotCode = `\
+function getMandelbrotCode(iterations, threshold) {
+    return `\
 #version 300 es
 precision highp float;
 
@@ -136,9 +122,9 @@ void main() {
     float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
 
-    for (int i = 0; i < ${ITERATIONS}; ++ i) {
+    for (int i = 0; i < ${iterations}; ++ i) {
         float a = z.x*z.x + z.y*z.y;
-        if (a >= ${toFloatStr(THRESHOLD * THRESHOLD)}) {
+        if (a >= ${toFloatStr(threshold * threshold)}) {
             float v = (float(i + 1) - log(log(a))) * 0.005;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
@@ -150,10 +136,11 @@ void main() {
         z.x = zx;
     }
     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}`;
 }
-`;
 
-const juliaCode = `\
+function getJuliaCode(iterations, threshold) {
+    return `\
 #version 300 es
 precision highp float;
 
@@ -173,9 +160,9 @@ void main() {
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
     vec2 z = vec2(x, y);
 
-    for (int i = 0; i < ${ITERATIONS}; ++ i) {
+    for (int i = 0; i < ${iterations}; ++ i) {
         float a = z.x*z.x + z.y*z.y;
-        if (a >= ${toFloatStr(THRESHOLD * THRESHOLD)}) {
+        if (a >= ${toFloatStr(threshold * threshold)}) {
             float v = (float(i + 1) - log(log(a))) * 0.005;
 
             fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
@@ -187,15 +174,26 @@ void main() {
         z.x = zx;
     }
     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}`;
 }
-`;
-
-const fragmentCode = fractalParam === 'julia' ? juliaCode : mandelbrotCode;
 
 const canvas = document.getElementById("canvas");
-const fps = document.getElementById("fps");
+const fpsEl = document.getElementById("fps");
+const messagesEl = document.getElementById("messages");
+const helpEl = document.getElementById("help");
+
+function showMessage(message) {
+    console.log(message);
+    const lineEl = document.createElement('li');
+    lineEl.appendChild(document.createTextNode(message));
+    messagesEl.appendChild(lineEl);
+    setTimeout(function () {
+        messagesEl.removeChild(lineEl);
+    }, 5000);
+}
 
 let redraw;
+let setFractal;
 
 function resizeCanvas() {
     canvas.style.width  = `${window.innerWidth}px`;
@@ -255,11 +253,31 @@ function getUrlHash() {
     }
 }
 
-function setUrlHash() {
-    history.replaceState(null, null, `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`);
+function setUrlParams() {
+    const params = [];
+    if (fractalParam !== 'mandelbrot') {
+        params.push(`fractal=${fractalParam}`);
+    }
+    if (ITERATIONS !== DEFAULT_ITERATIONS) {
+        params.push(`iterations=${ITERATIONS}`);
+    }
+    if (THRESHOLD !== DEFAULT_THRESHOLD) {
+        params.push(`threshold=${THRESHOLD}`);
+    }
+    if (ANIMATION && ANIMATION.length > 0) {
+        const animStr = ANIMATION.map(item => `${item.x},${item.y},${item.z},${item.d},${item.cr},${item.ci}`).join('%20');
+        params.push(`animation=${animStr}`);
+    }
+    if (animationFPS !== DEFAULT_FPS) {
+        params.push(`fps=${animationFPS}`);
+    }
+    const query = params.join('&');
+    const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;
+
+    history.replaceState(null, null, `?${query}${hash}`);
 }
 
-const throttledSetUrlHash = throttle(setUrlHash, 500);
+const throttledSetUrlParams = throttle(setUrlParams, 500);
 
 getUrlHash();
 
@@ -272,7 +290,7 @@ window.onhashchange = function () {
 window.onclick = function (event) {
     viewPort.x += -0.5 * (canvas.width / canvas.height) * viewPort.z + event.clientX * window.devicePixelRatio / canvas.height * viewPort.z;
     viewPort.y -= -0.5 * viewPort.z + event.clientY * window.devicePixelRatio / canvas.height * viewPort.z;
-    setUrlHash();
+    setUrlParams();
     redraw();
 };
 */
@@ -305,7 +323,7 @@ window.onmousedown = function (event) {
     if (touching || animating || !(event.buttons & 1)) return;
     canvas.classList.add('grabbing');
     canvas.classList.remove('cursorHidden');
-    fps.classList.remove('hidden');
+    fpsEl.classList.remove('hidden');
     if (hideCursorTimer !== null) {
         clearTimeout(hideCursorTimer);
     }
@@ -319,9 +337,9 @@ window.onmousedown = function (event) {
  */
 window.onmouseup = function (event) {
     if (!grabbing || (event.buttons & 1)) return;
-    setUrlHash();
+    setUrlParams();
     if (!touching) {
-        fps.classList.add('hidden');
+        fpsEl.classList.add('hidden');
     }
     if (!animating) {
         showCursor();
@@ -384,7 +402,7 @@ window.addEventListener('touchstart', function (event) {
     event.preventDefault();
     if (grabbing || animating) return;
     touching = true;
-    fps.classList.remove('hidden');
+    fpsEl.classList.remove('hidden');
 
     for (const touch of event.changedTouches) {
         const x = touch.clientX * window.devicePixelRatio;
@@ -441,7 +459,7 @@ window.addEventListener('touchmove', function (event) {
  */
 function handleTouchEnd (event) {
     event.preventDefault();
-    setUrlHash();
+    setUrlParams();
 
     for (const touch of event.changedTouches) {
         activeTouches.delete(touch.identifier);
@@ -450,7 +468,7 @@ function handleTouchEnd (event) {
     if (activeTouches.size === 0) {
         touching = false;
         if (!grabbing) {
-            fps.classList.add('hidden');
+            fpsEl.classList.add('hidden');
         }
     }
 }
@@ -463,90 +481,253 @@ window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
  * @param {KeyboardEvent} event 
  */
 window.onkeydown = function (event) {
-    switch (event.key) {
-        case '+':
-            if (event.altKey) {
-                viewPort.ci /= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
-            } else if (event.ctrlKey) {
-                viewPort.cr /= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
-            } else {
+    try {
+        switch (event.key) {
+            case '+':
                 viewPort.z /= ZOOM_FACTOR;
-            }
-            throttledSetUrlHash();
-            redraw();
-            event.preventDefault();
-            break;
+                throttledSetUrlParams();
+                redraw();
+                event.preventDefault();
+                break;
 
-        case '-':
-            if (event.altKey) {
-                viewPort.ci *= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
-            } else if (event.ctrlKey) {
-                viewPort.cr *= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
-            } else {
+            case '-':
                 viewPort.z *= ZOOM_FACTOR;
-            }
-            throttledSetUrlHash();
-            redraw();
-            event.preventDefault();
-            break;
+                throttledSetUrlParams();
+                redraw();
+                event.preventDefault();
+                break;
 
-        case 'f':
-            toggleFullscreen();
-            event.preventDefault();
-            break;
+            case 'f':
+                toggleFullscreen();
+                event.preventDefault();
+                break;
 
-        case 'ArrowRight':
-            if (event.ctrlKey) {
-                viewPort.ci *= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
-            } else {
-                viewPort.x += 0.1 * viewPort.z;
-            }
-            throttledSetUrlHash();
-            redraw();
-            event.preventDefault();
-            break;
+            case 'h':
+                if (helpEl.classList.contains('hidden')) {
+                    helpEl.classList.remove('hidden');
+                } else {
+                    helpEl.classList.add('hidden');
+                }
+                event.preventDefault();
+                break;
 
-        case 'ArrowLeft':
-            if (event.ctrlKey) {
-                viewPort.ci /= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
-            } else {
-                viewPort.x -= 0.1 * viewPort.z;
-            }
-            throttledSetUrlHash();
-            redraw();
-            event.preventDefault();
-            break;
+            case 'i':
+                if (ITERATIONS < 10000) {
+                    if (ITERATIONS >= 1000) {
+                        ITERATIONS += 1000;
+                    } else if (ITERATIONS >= 100) {
+                        ITERATIONS += 100;
+                    } else if (ITERATIONS >= 10) {
+                        ITERATIONS += 10;
+                    } else {
+                        ITERATIONS += 1;
+                    }
+                    showMessage(`increased iterations to ${ITERATIONS}`);
+                    setFractal();
+                    redraw();
+                    throttledSetUrlParams();
+                }
+                event.preventDefault();
+                break;
 
-        case 'ArrowUp':
-            if (event.ctrlKey) {
-                viewPort.cr *= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
-            } else {
-                viewPort.y += 0.1 * viewPort.z;
-            }
-            throttledSetUrlHash();
-            redraw();
-            event.preventDefault();
-            break;
+            case 'I':
+                if (ITERATIONS > 1) {
+                    if (ITERATIONS > 1000) {
+                        ITERATIONS -= 1000;
+                    } else if (ITERATIONS > 100) {
+                        ITERATIONS -= 100;
+                    } else if (ITERATIONS > 10) {
+                        ITERATIONS -= 10;
+                    } else {
+                        ITERATIONS -= 1;
+                    }
+                    showMessage(`decreased iterations to ${ITERATIONS}`);
+                    setFractal();
+                    redraw();
+                    throttledSetUrlParams();
+                }
+                event.preventDefault();
+                break;
 
-        case 'ArrowDown':
-            if (event.ctrlKey) {
-                viewPort.cr /= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
-            } else {
-                viewPort.y -= 0.1 * viewPort.z;
-            }
-            throttledSetUrlHash();
-            redraw();
-            event.preventDefault();
-            break;
+            case 't':
+                if (THRESHOLD < 10000) {
+                    if (THRESHOLD >= 1000) {
+                        THRESHOLD += 1000;
+                    } else if (THRESHOLD >= 100) {
+                        THRESHOLD += 100;
+                    } else if (THRESHOLD >= 10) {
+                        THRESHOLD += 10;
+                    } else {
+                        THRESHOLD += 1;
+                    }
+                    showMessage(`increased threshold to ${THRESHOLD}`);
+                    setFractal();
+                    redraw();
+                    throttledSetUrlParams();
+                }
+                event.preventDefault();
+                break;
 
-        case 'Escape':
-            stopAnimation();
-            event.preventDefault();
-            break;
+            case 'T':
+                if (THRESHOLD > 1) {
+                    if (THRESHOLD > 1000) {
+                        THRESHOLD -= 1000;
+                    } else if (THRESHOLD > 100) {
+                        THRESHOLD -= 100;
+                    } else if (THRESHOLD > 10) {
+                        THRESHOLD -= 10;
+                    } else {
+                        THRESHOLD -= 1;
+                    }
+                    showMessage(`decreased threshold to ${THRESHOLD}`);
+                    setFractal();
+                    redraw();
+                    throttledSetUrlParams();
+                }
+                event.preventDefault();
+                break;
 
-        default:
-            console.log(event);
-            break;
+            case 'p':
+                playAnimation();
+                event.preventDefault();
+                break;
+
+            case 'a':
+                if (!ANIMATION) {
+                    ANIMATION = [];
+                }
+                const item = { ...viewPort, d: 1000 };
+                ANIMATION.push(item);
+                setUrlParams();
+                showMessage(`added key-frame #${ANIMATION.length}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                event.preventDefault();
+                break;
+
+            case 'A':
+                if (ANIMATION && ANIMATION.length > 0) {
+                    const item = ANIMATION.pop();
+                    if (ANIMATION.length === 0) {
+                        ANIMATION = null;
+                    }
+                    setUrlParams();
+                    showMessage(`removed key-frame #${ANIMATION.length + 1}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                } else {
+                    showMessage('no more key-frames to remove');
+                }
+                event.preventDefault();
+                break;
+
+            case 'u':
+                if (ANIMATION && ANIMATION.length > 0) {
+                    const item = ANIMATION[ANIMATION.length - 1];
+                    item.x  = viewPort.x;
+                    item.y  = viewPort.y;
+                    item.z  = viewPort.z;
+                    item.cr = viewPort.cr;
+                    item.ci = viewPort.ci;
+                    showMessage(`updated key-frame #${ANIMATION.length} to: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                } else {
+                    showMessage(`no animation`);
+                }
+                event.preventDefault();
+                break;
+
+            case 'd':
+                if (ANIMATION && ANIMATION.length > 0) {
+                    const item = ANIMATION[ANIMATION.length - 1];
+                    item.d += event.altKey ? 100 : 1000;
+                    setUrlParams();
+                    showMessage(`increased duration of key-frame #${ANIMATION.length} to ${item.d}`);
+                } else {
+                    showMessage(`no animation`);
+                }
+                event.preventDefault();
+                break;
+
+            case 'D':
+                if (ANIMATION && ANIMATION.length > 0) {
+                    const item = ANIMATION[ANIMATION.length - 1];
+                    item.d = Math.max(0, item.d - event.altKey ? 100 : 1000);
+                    setUrlParams();
+                    showMessage(`decreased duration of key-frame #${ANIMATION.length} to ${item.d}`);
+                } else {
+                    showMessage(`no animation`);
+                }
+                event.preventDefault();
+                break;
+
+            case 'ArrowRight':
+                if (event.ctrlKey) {
+                    viewPort.cr *= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+                } else {
+                    viewPort.x += 0.1 * viewPort.z;
+                }
+                throttledSetUrlParams();
+                redraw();
+                event.preventDefault();
+                break;
+
+            case 'ArrowLeft':
+                if (event.ctrlKey) {
+                    viewPort.cr /= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+                } else {
+                    viewPort.x -= 0.1 * viewPort.z;
+                }
+                throttledSetUrlParams();
+                redraw();
+                event.preventDefault();
+                break;
+
+            case 'ArrowUp':
+                if (event.ctrlKey) {
+                    viewPort.ci *= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+                } else {
+                    viewPort.y += 0.1 * viewPort.z;
+                }
+                throttledSetUrlParams();
+                redraw();
+                event.preventDefault();
+                break;
+
+            case 'ArrowDown':
+                if (event.ctrlKey) {
+                    viewPort.ci /= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+                } else {
+                    viewPort.y -= 0.1 * viewPort.z;
+                }
+                throttledSetUrlParams();
+                redraw();
+                event.preventDefault();
+                break;
+
+            case 'Escape':
+                stopAnimation();
+                event.preventDefault();
+                break;
+
+            case 'm':
+                fractalParam = 'mandelbrot';
+                setFractal();
+                redraw();
+                setUrlParams();
+                event.preventDefault();
+                break;
+
+            case 'j':
+                fractalParam = 'julia';
+                setFractal();
+                redraw();
+                setUrlParams();
+                event.preventDefault();
+                break;
+
+            default:
+                // console.log(event);
+                break;
+        }
+    } catch (error) {
+        console.error(error);
+        alert(String(error));
     }
 };
 
@@ -562,17 +743,17 @@ const CR_FACTOR_FINE = 1.0001;
 window.addEventListener('wheel', function (event) {
     event.preventDefault();
 
-    if (event.deltaY === 0 || event.altKey || event.metaKey) {
+    if (event.deltaY === 0 || event.metaKey) {
         return;
     }
 
-    if (event.ctrlKey || event.shiftKey) {
-        if (event.shiftKey) {
+    if (event.ctrlKey || event.altKey) {
+        if (event.altKey) {
             viewPort.ci = event.deltaY < 0 ? viewPort.ci / CI_FACTOR : viewPort.ci * CI_FACTOR;
         } else {
             viewPort.cr = event.deltaY < 0 ? viewPort.cr / CR_FACTOR : viewPort.cr * CR_FACTOR;
         }
-        setUrlHash();
+        setUrlParams();
         redraw();
         return;
     }
@@ -590,7 +771,7 @@ window.addEventListener('wheel', function (event) {
     viewPort.y -= dy * z1 - dy * z2;
     viewPort.z = z2;
 
-    setUrlHash();
+    setUrlParams();
     redraw();
 }, { passive: false });
 
@@ -611,13 +792,48 @@ function setup() {
     }
 
     const program = gl.createProgram();
-    gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vertexCode));
-    gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fragmentCode));
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(program));
+    let fragmentCode = fractalParam === 'julia' ?
+        getJuliaCode(ITERATIONS, THRESHOLD) :
+        getMandelbrotCode(ITERATIONS, THRESHOLD);
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexCode);
+    let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
+
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    setFractal = function setFractal () {
+        try {
+            gl.detachShader(program, fragmentShader);
+            gl.deleteShader(fragmentShader);
+
+            fragmentCode = fractalParam === 'julia' ?
+                getJuliaCode(ITERATIONS, THRESHOLD) :
+                getMandelbrotCode(ITERATIONS, THRESHOLD);
+
+            fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
+            gl.attachShader(program, fragmentShader);
+            linkProgram();
+        } catch (error) {
+            console.error(error);
+            alert(`Error changing fractal: ${error}`);
+        }
+    };
+
+    function linkProgram () {
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            throw new Error(gl.getProgramInfoLog(program));
+        }
+
+        vertexPosition = gl.getAttribLocation(program, 'vertexPosition');
+        gl.enableVertexAttribArray(vertexPosition);
+        gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0);
+
+        canvasSizeUniform = gl.getUniformLocation(program, 'canvasSize');
+        viewPortUniform = gl.getUniformLocation(program, 'viewPort');
+        cUniform = gl.getUniformLocation(program, 'c');
     }
-    gl.useProgram(program);
 
     const vertices = [
       [-1, -1],
@@ -633,13 +849,8 @@ function setup() {
     let w = canvas.width;
     let h = canvas.height;
 
-    const vertexPosition = gl.getAttribLocation(program, 'vertexPosition');
-    gl.enableVertexAttribArray(vertexPosition);
-    gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0);
-
-    const canvasSizeUniform = gl.getUniformLocation(program, 'canvasSize');
-    const viewPortUniform = gl.getUniformLocation(program, 'viewPort');
-    const cUniform = gl.getUniformLocation(program, 'c');
+    linkProgram();
+    gl.useProgram(program);
 
     let timestamp = Date.now();
 
@@ -668,7 +879,7 @@ function setup() {
         const now = Date.now();
         const duration = (now - timestamp) / 1000;
         const fpsVal = 1 / duration;
-        fps.innerHTML = `${fpsVal > 1.0 ? Math.round(fpsVal) : fpsVal.toFixed(1)} fps`;
+        fpsEl.innerHTML = `${fpsVal > 1.0 ? Math.round(fpsVal) : fpsVal.toFixed(1)} fps`;
         timestamp = now;
     }
 }
@@ -689,10 +900,15 @@ function playAnimation() {
         animationTimer = null;
     }
 
-    viewPort.x = ANIMATION[0][0];
-    viewPort.y = ANIMATION[0][1];
-    viewPort.z = ANIMATION[0][2];
-    redraw();
+    {
+        const item = ANIMATION[0];
+        viewPort.x = item.x;
+        viewPort.y = item.y;
+        viewPort.z = item.z;
+        viewPort.cr = item.cr;
+        viewPort.ci = item.ci;
+        redraw();
+    }
 
     if (ANIMATION.length < 2) {
         animating = false;
@@ -741,11 +957,10 @@ function playAnimation() {
 }
 
 try {
+    setup();
     if (ANIMATION) {
-        setup();
         playAnimation();
     } else {
-        setup();
         redraw();
         showCursor();
     }
