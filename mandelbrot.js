@@ -199,12 +199,14 @@ function showMessage(message) {
 
 let redraw;
 let setFractal;
+let sampleRatio = 1;
+let pixelRatio = window.devicePixelRatio * sampleRatio;
 
 function resizeCanvas() {
     canvas.style.width  = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
-    canvas.width  = window.devicePixelRatio * window.innerWidth;
-    canvas.height = window.devicePixelRatio * window.innerHeight;
+    canvas.width  = pixelRatio * window.innerWidth;
+    canvas.height = pixelRatio * window.innerHeight;
 }
 
 window.onresize = function () {
@@ -293,8 +295,8 @@ window.onhashchange = function () {
 
 /*
 window.onclick = function (event) {
-    viewPort.x += -0.5 * (canvas.width / canvas.height) * viewPort.z + event.clientX * window.devicePixelRatio / canvas.height * viewPort.z;
-    viewPort.y -= -0.5 * viewPort.z + event.clientY * window.devicePixelRatio / canvas.height * viewPort.z;
+    viewPort.x += -0.5 * (canvas.width / canvas.height) * viewPort.z + event.clientX * pixelRatio / canvas.height * viewPort.z;
+    viewPort.y -= -0.5 * viewPort.z + event.clientY * pixelRatio / canvas.height * viewPort.z;
     setUrlParams();
     redraw();
 };
@@ -333,8 +335,8 @@ window.onmousedown = function (event) {
         clearTimeout(hideCursorTimer);
     }
     grabbing = true;
-    mousePos.x = event.clientX * window.devicePixelRatio;
-    mousePos.y = event.clientY * window.devicePixelRatio;
+    mousePos.x = event.clientX * pixelRatio;
+    mousePos.y = event.clientY * pixelRatio;
 };
 
 /**
@@ -358,8 +360,8 @@ window.onmousemove = function (event) {
     if (!animating) {
         showCursor();
     }
-    const x = event.clientX * window.devicePixelRatio;
-    const y = event.clientY * window.devicePixelRatio;
+    const x = event.clientX * pixelRatio;
+    const y = event.clientY * pixelRatio;
     if (grabbing) {
         const dx = x - mousePos.x;
         const dy = y - mousePos.y;
@@ -430,8 +432,8 @@ window.addEventListener('touchstart', function (event) {
     fpsEl.classList.remove('hidden');
 
     for (const touch of event.changedTouches) {
-        const x = touch.clientX * window.devicePixelRatio;
-        const y = touch.clientY * window.devicePixelRatio;
+        const x = touch.clientX * pixelRatio;
+        const y = touch.clientY * pixelRatio;
         activeTouches.set(touch.identifier, { x, y });
     }
 
@@ -449,8 +451,8 @@ window.addEventListener('touchmove', function (event) {
     const { x: x1, y: y1, size: size1 } = activeCenter;
 
     for (const touch of event.changedTouches) {
-        const x = touch.clientX * window.devicePixelRatio;
-        const y = touch.clientY * window.devicePixelRatio;
+        const x = touch.clientX * pixelRatio;
+        const y = touch.clientY * pixelRatio;
         activeTouches.set(touch.identifier, { x, y });
     }
 
@@ -764,6 +766,14 @@ window.onkeydown = function (event) {
                 event.preventDefault();
                 break;
 
+            case 'o':
+                sampleRatio = 1 + sampleRatio % 2;
+                pixelRatio = window.devicePixelRatio * sampleRatio;
+                showMessage(`set sampling ratio to ${sampleRatio}`);
+                resizeCanvas();
+                redraw();
+                break;
+
             default:
                 // console.log(event);
                 break;
@@ -804,8 +814,8 @@ window.addEventListener('wheel', function (event) {
     const z1 = viewPort.z;
     const z2 = event.deltaY < 0 ? z1 / ZOOM_FACTOR : z1 * ZOOM_FACTOR;
 
-    const x = event.clientX * window.devicePixelRatio;
-    const y = event.clientY * window.devicePixelRatio;
+    const x = event.clientX * pixelRatio;
+    const y = event.clientY * pixelRatio;
 
     const dx = (x - canvas.width  * 0.5) / canvas.height;
     const dy = (y - canvas.height * 0.5) / canvas.height;

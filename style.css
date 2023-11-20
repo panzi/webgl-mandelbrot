@@ -28,7 +28,6 @@ input[type=number] {
 
 canvas {
     margin: 0;
-    image-rendering: pixelated;
     box-sizing: border-box;
     cursor: grab;
 }
