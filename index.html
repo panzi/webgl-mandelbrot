@@ -28,7 +28,12 @@
 <canvas id="canvas"></canvas>
 <div id="fps" class="message hidden">X fps</div>
 <ol id="messages" class="message"></ol>
-<div id="help" class="message hidden" onmousedown="event.stopPropagation();" ontouchstart="event.stopPropagation();" onwheel="event.stopPropagation();">
+<div id="help" class="message hidden"
+    onmousedown="event.stopPropagation();"
+    ontouchstart="event.stopPropagation();"
+    onwheel="event.stopPropagation();"
+    onclick="event.stopPropagation();"
+    ondblclick="event.stopPropagation();">
   <h3>Hotkeys</h3>
   <table>
     <tbody>
@@ -131,6 +136,17 @@
       <tr>
         <td class="hotkey"><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd></td>
         <td>Decrease duration of last key-frame by 100 milliseconds</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Settings</h3>
+
+  <table>
+    <tbody>
+      <tr>
+        <td><input type="number" min="1" max="120" value="12" id="fps-input" onchange="animationFPS = +this.value; setUrlParams();" /></td>
+        <td><label for="fps-input">Animation frames per second</label></td>
       </tr>
     </tbody>
   </table>

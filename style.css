@@ -7,23 +7,46 @@ body, html {
     width: 100vw;
     height: 100vh;
 }
+
+input {
+    color: white;
+    background: #0201f7;
+    padding: 0.1em 0.2em;
+    border-radius: 0.25em;
+    border: 2px solid #7676ff;
+    outline-color: #9f9fff;
+    outline-width: 2px;
+}
+
+input:focus-visible {
+    outline-style: solid;
+}
+
+input[type=number] {
+    text-align: right;
+}
+
 canvas {
     margin: 0;
     image-rendering: pixelated;
     box-sizing: border-box;
     cursor: grab;
 }
+
 canvas.grabbing {
     cursor: grabbing;
 }
+
 canvas.cursorHidden {
     cursor: none;
 }
+
 body, html, canvas {
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
+
 .message {
     margin: 0.5em;
     font-size: 18px;
@@ -31,12 +54,14 @@ body, html, canvas {
     color: white;
     text-shadow: 1px 1px black;
 }
+
 #fps {
     position: absolute;
     right: 0;
     bottom: 0;
     pointer-events: none;
 }
+
 #messages {
     position: absolute;
     left: 0;
@@ -45,6 +70,7 @@ body, html, canvas {
     padding: 0;
     pointer-events: none;
 }
+
 #help {
     position: absolute;
     margin: 0 auto;

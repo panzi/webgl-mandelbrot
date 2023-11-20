@@ -61,6 +61,8 @@ if (!isFinite(animationFPS) || animationFPS <= 0) {
     animationFPS = 120;
 }
 
+document.getElementById('fps-input').value = animationFPS;
+
 // file:///home/panzi/src/html/mandelbrot/index.html?animation=-0.8269631235223067,-0.7110330380891499,18.62645149230957%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,5000%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,1000%20-0.8269631235223067,-0.7110330380891499,18.62645149230957,5000
 let ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 let THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
@@ -346,6 +348,7 @@ window.onmouseup = function (event) {
     }
     grabbing = false;
     canvas.classList.remove('grabbing');
+    helpEl.classList.add('hidden');
 }
 
 window.onmousemove = function (event) {
