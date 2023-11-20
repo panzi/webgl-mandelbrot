@@ -440,8 +440,13 @@ window.addEventListener('touchmove', function (event) {
     const dx = x2 - x1;
     const dy = y2 - y1;
 
-    viewPort.x -= dx / canvas.height * viewPort.z;
-    viewPort.y += dy / canvas.height * viewPort.z;
+    if (touchCount2 > 2 && fractalParam === 'julia') {
+        viewPort.cr /= Math.pow(2, dx / canvas.height);
+        viewPort.ci /= Math.pow(2, dy / canvas.height);
+    } else {
+        viewPort.x -= dx / canvas.height * viewPort.z;
+        viewPort.y += dy / canvas.height * viewPort.z;
+    }
 
     if (touchCount1 > 1 && touchCount2 > 1 && size1 !== 0 && size2 !== 0) {
         const scale = size1 / size2;
