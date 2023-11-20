@@ -55,23 +55,21 @@ const MAX_FPS = 120;
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
-let fractalParam = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 
+let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let animationFPS = +params.get('fps', DEFAULT_FPS);
 
-if (!isFinite(animationFPS)) {
+if (!isFinite(animationFPS) || animationFPS <= 0) {
     animationFPS = DEFAULT_FPS;
-} else if (animationFPS <= 0) {
-    animationFPS = 1;
 } else if (animationFPS > MAX_FPS) {
     animationFPS = MAX_FPS;
 }
 
 document.getElementById('fps-input').value = animationFPS;
 
-let ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, MAX_ITERATIONS), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
-let THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, MAX_THRESHOLD), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
-let ANIMATION = animationParam ? animationParam.split(/\s+/).map(
+let iterations = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, MAX_ITERATIONS), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
+let threshold = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, MAX_THRESHOLD), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
+let animation = animationParam ? animationParam.split(/\s+/).map(
     item => {
         const step = item ? item.split(',').map(Number) : [];
         let [x, y, z, d, cr, ci] = step;
@@ -244,7 +242,7 @@ const viewPort = {
     ci: 0.148,
 };
 
-if (fractalParam === 'julia') {
+if (fractal === 'julia') {
     viewPort.x = 0;
     viewPort.z = 2;
 }
@@ -262,17 +260,17 @@ function getUrlHash() {
 
 function setUrlParams() {
     const params = [];
-    if (fractalParam !== 'mandelbrot') {
-        params.push(`fractal=${fractalParam}`);
+    if (fractal !== 'mandelbrot') {
+        params.push(`fractal=${fractal}`);
     }
-    if (ITERATIONS !== DEFAULT_ITERATIONS) {
-        params.push(`iterations=${ITERATIONS}`);
+    if (iterations !== DEFAULT_ITERATIONS) {
+        params.push(`iterations=${iterations}`);
     }
-    if (THRESHOLD !== DEFAULT_THRESHOLD) {
-        params.push(`threshold=${THRESHOLD}`);
+    if (threshold !== DEFAULT_THRESHOLD) {
+        params.push(`threshold=${threshold}`);
     }
-    if (ANIMATION && ANIMATION.length > 0) {
-        const animStr = ANIMATION.map(item => `${item.x},${item.y},${item.z},${item.d},${item.cr},${item.ci}`).join('%20');
+    if (animation && animation.length > 0) {
+        const animStr = animation.map(item => `${item.x},${item.y},${item.z},${item.d},${item.cr},${item.ci}`).join('%20');
         params.push(`animation=${animStr}`);
     }
     if (animationFPS !== DEFAULT_FPS) {
@@ -365,7 +363,7 @@ window.onmousemove = function (event) {
     if (grabbing) {
         const dx = x - mousePos.x;
         const dy = y - mousePos.y;
-        if (event.ctrlKey && fractalParam === 'julia') {
+        if (event.ctrlKey && fractal === 'julia') {
             viewPort.cr /= Math.pow(2, dx / canvas.height);
             viewPort.ci /= Math.pow(2, dy / canvas.height);
         } else {
@@ -464,7 +462,7 @@ window.addEventListener('touchmove', function (event) {
     const dx = x2 - x1;
     const dy = y2 - y1;
 
-    if (touchCount2 > 2 && fractalParam === 'julia') {
+    if (touchCount2 > 2 && fractal === 'julia') {
         viewPort.cr /= Math.pow(2, dx / canvas.height);
         viewPort.ci /= Math.pow(2, dy / canvas.height);
     } else {
@@ -546,17 +544,17 @@ window.onkeydown = function (event) {
                 break;
 
             case 'i':
-                if (ITERATIONS < MAX_ITERATIONS) {
-                    if (ITERATIONS >= 1000) {
-                        ITERATIONS += 1000;
-                    } else if (ITERATIONS >= 100) {
-                        ITERATIONS += 100;
-                    } else if (ITERATIONS >= 10) {
-                        ITERATIONS += 10;
+                if (iterations < MAX_ITERATIONS) {
+                    if (iterations >= 1000) {
+                        iterations += 1000;
+                    } else if (iterations >= 100) {
+                        iterations += 100;
+                    } else if (iterations >= 10) {
+                        iterations += 10;
                     } else {
-                        ITERATIONS += 1;
+                        iterations += 1;
                     }
-                    showMessage(`increased iterations to ${ITERATIONS}`);
+                    showMessage(`increased iterations to ${iterations}`);
                     setFractal();
                     redraw();
                     throttledSetUrlParams();
@@ -565,17 +563,17 @@ window.onkeydown = function (event) {
                 break;
 
             case 'I':
-                if (ITERATIONS > 1) {
-                    if (ITERATIONS > 1000) {
-                        ITERATIONS -= 1000;
-                    } else if (ITERATIONS > 100) {
-                        ITERATIONS -= 100;
-                    } else if (ITERATIONS > 10) {
-                        ITERATIONS -= 10;
+                if (iterations > 1) {
+                    if (iterations > 1000) {
+                        iterations -= 1000;
+                    } else if (iterations > 100) {
+                        iterations -= 100;
+                    } else if (iterations > 10) {
+                        iterations -= 10;
                     } else {
-                        ITERATIONS -= 1;
+                        iterations -= 1;
                     }
-                    showMessage(`decreased iterations to ${ITERATIONS}`);
+                    showMessage(`decreased iterations to ${iterations}`);
                     setFractal();
                     redraw();
                     throttledSetUrlParams();
@@ -584,17 +582,17 @@ window.onkeydown = function (event) {
                 break;
 
             case 't':
-                if (THRESHOLD < MAX_THRESHOLD) {
-                    if (THRESHOLD >= 1000) {
-                        THRESHOLD += 1000;
-                    } else if (THRESHOLD >= 100) {
-                        THRESHOLD += 100;
-                    } else if (THRESHOLD >= 10) {
-                        THRESHOLD += 10;
+                if (threshold < MAX_THRESHOLD) {
+                    if (threshold >= 1000) {
+                        threshold += 1000;
+                    } else if (threshold >= 100) {
+                        threshold += 100;
+                    } else if (threshold >= 10) {
+                        threshold += 10;
                     } else {
-                        THRESHOLD += 1;
+                        threshold += 1;
                     }
-                    showMessage(`increased threshold to ${THRESHOLD}`);
+                    showMessage(`increased threshold to ${threshold}`);
                     setFractal();
                     redraw();
                     throttledSetUrlParams();
@@ -603,17 +601,17 @@ window.onkeydown = function (event) {
                 break;
 
             case 'T':
-                if (THRESHOLD > 1) {
-                    if (THRESHOLD > 1000) {
-                        THRESHOLD -= 1000;
-                    } else if (THRESHOLD > 100) {
-                        THRESHOLD -= 100;
-                    } else if (THRESHOLD > 10) {
-                        THRESHOLD -= 10;
+                if (threshold > 1) {
+                    if (threshold > 1000) {
+                        threshold -= 1000;
+                    } else if (threshold > 100) {
+                        threshold -= 100;
+                    } else if (threshold > 10) {
+                        threshold -= 10;
                     } else {
-                        THRESHOLD -= 1;
+                        threshold -= 1;
                     }
-                    showMessage(`decreased threshold to ${THRESHOLD}`);
+                    showMessage(`decreased threshold to ${threshold}`);
                     setFractal();
                     redraw();
                     throttledSetUrlParams();
@@ -622,40 +620,40 @@ window.onkeydown = function (event) {
                 break;
 
             case 'p':
-                playAnimation(ANIMATION);
+                playAnimation(animation);
                 event.preventDefault();
                 break;
 
             case 'P':
-                if (ANIMATION) {
-                    const animation = ANIMATION.slice().reverse();
-                    for (let index = animation.length - 2; index >= 0; -- index) {
-                        animation[index + 1].d = animation[index].d;
+                if (animation) {
+                    const revAnimation = animation.slice().reverse();
+                    for (let index = revAnimation.length - 2; index >= 0; -- index) {
+                        revAnimation[index + 1].d = revAnimation[index].d;
                     }
-                    playAnimation(animation);
+                    playAnimation(revAnimation);
                 }
                 event.preventDefault();
                 break;
 
             case 'a':
-                if (!ANIMATION) {
-                    ANIMATION = [];
+                if (!animation) {
+                    animation = [];
                 }
                 const item = { ...viewPort, d: 1000 };
-                ANIMATION.push(item);
+                animation.push(item);
                 setUrlParams();
-                showMessage(`added key-frame #${ANIMATION.length}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                showMessage(`added key-frame #${animation.length}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
                 event.preventDefault();
                 break;
 
             case 'A':
-                if (ANIMATION && ANIMATION.length > 0) {
-                    const item = ANIMATION.pop();
-                    if (ANIMATION.length === 0) {
-                        ANIMATION = null;
+                if (animation && animation.length > 0) {
+                    const item = animation.pop();
+                    if (animation.length === 0) {
+                        animation = null;
                     }
                     setUrlParams();
-                    showMessage(`removed key-frame #${ANIMATION.length + 1}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                    showMessage(`removed key-frame #${animation.length + 1}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
                 } else {
                     showMessage('no more key-frames to remove');
                 }
@@ -663,14 +661,14 @@ window.onkeydown = function (event) {
                 break;
 
             case 'u':
-                if (ANIMATION && ANIMATION.length > 0) {
-                    const item = ANIMATION[ANIMATION.length - 1];
+                if (animation && animation.length > 0) {
+                    const item = animation[animation.length - 1];
                     item.x  = viewPort.x;
                     item.y  = viewPort.y;
                     item.z  = viewPort.z;
                     item.cr = viewPort.cr;
                     item.ci = viewPort.ci;
-                    showMessage(`updated key-frame #${ANIMATION.length} to: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                    showMessage(`updated key-frame #${animation.length} to: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
                 } else {
                     showMessage(`no animation`);
                 }
@@ -678,11 +676,11 @@ window.onkeydown = function (event) {
                 break;
 
             case 'd':
-                if (ANIMATION && ANIMATION.length > 0) {
-                    const item = ANIMATION[ANIMATION.length - 1];
+                if (animation && animation.length > 0) {
+                    const item = animation[animation.length - 1];
                     item.d += event.altKey ? 100 : 1000;
                     setUrlParams();
-                    showMessage(`increased duration of key-frame #${ANIMATION.length} to ${item.d}`);
+                    showMessage(`increased duration of key-frame #${animation.length} to ${item.d}`);
                 } else {
                     showMessage(`no animation`);
                 }
@@ -690,11 +688,11 @@ window.onkeydown = function (event) {
                 break;
 
             case 'D':
-                if (ANIMATION && ANIMATION.length > 0) {
-                    const item = ANIMATION[ANIMATION.length - 1];
+                if (animation && animation.length > 0) {
+                    const item = animation[animation.length - 1];
                     item.d = Math.max(0, item.d - event.altKey ? 100 : 1000);
                     setUrlParams();
-                    showMessage(`decreased duration of key-frame #${ANIMATION.length} to ${item.d}`);
+                    showMessage(`decreased duration of key-frame #${animation.length} to ${item.d}`);
                 } else {
                     showMessage(`no animation`);
                 }
@@ -751,7 +749,7 @@ window.onkeydown = function (event) {
                 break;
 
             case 'm':
-                fractalParam = 'mandelbrot';
+                fractal = 'mandelbrot';
                 setFractal();
                 redraw();
                 setUrlParams();
@@ -759,7 +757,7 @@ window.onkeydown = function (event) {
                 break;
 
             case 'j':
-                fractalParam = 'julia';
+                fractal = 'julia';
                 setFractal();
                 redraw();
                 setUrlParams();
@@ -837,9 +835,9 @@ function setup() {
     }
 
     const program = gl.createProgram();
-    let fragmentCode = fractalParam === 'julia' ?
-        getJuliaCode(ITERATIONS, THRESHOLD) :
-        getMandelbrotCode(ITERATIONS, THRESHOLD);
+    let fragmentCode = fractal === 'julia' ?
+        getJuliaCode(iterations, threshold) :
+        getMandelbrotCode(iterations, threshold);
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexCode);
     let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
@@ -852,9 +850,9 @@ function setup() {
             gl.detachShader(program, fragmentShader);
             gl.deleteShader(fragmentShader);
 
-            fragmentCode = fractalParam === 'julia' ?
-                getJuliaCode(ITERATIONS, THRESHOLD) :
-                getMandelbrotCode(ITERATIONS, THRESHOLD);
+            fragmentCode = fractal === 'julia' ?
+                getJuliaCode(iterations, threshold) :
+                getMandelbrotCode(iterations, threshold);
 
             fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
             gl.attachShader(program, fragmentShader);
@@ -1003,8 +1001,8 @@ function playAnimation(animation) {
 
 try {
     setup();
-    if (ANIMATION) {
-        playAnimation(ANIMATION);
+    if (animation) {
+        playAnimation(animation);
     } else {
         redraw();
         showCursor();
