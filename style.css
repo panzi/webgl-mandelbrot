@@ -87,15 +87,26 @@ body, html, canvas {
     scrollbar-width: auto;
     scrollbar-color: #5b5bf3 rgba(2,1,247,0.5);
 }
+
 table {
-    border-spacing: 0.5em;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
 }
+
+tr:nth-child(odd) {
+    background-color: rgba(0,0,0,0.0666);
+}
+
 td {
     vertical-align: middle;
+    padding: 0.25em;
 }
+
 .hidden {
     display: none;
 }
+
 kbd {
     font-size: 14px;
     display: inline-block;

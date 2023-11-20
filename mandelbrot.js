@@ -209,6 +209,50 @@ function resizeCanvas() {
     canvas.height = pixelRatio * window.innerHeight;
 }
 
+function saveScreenshotBlob() {
+    return new Promise((resolve, reject) => {
+        try {
+            const filename = `${fractal}.png`;
+            canvas.toBlob(blob => {
+                try {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.style.position = 'absolute';
+                    link.style.opacity = '0';
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 0);
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            }, 'image/png');
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+function saveScreenshot() {
+    const filename = `${fractal}.png`;
+    const url = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.position = 'absolute';
+    link.style.opacity = '0';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+        document.body.removeChild(link);
+    }, 0);
+}
+
 window.onresize = function () {
     resizeCanvas();
     redraw();
@@ -769,9 +813,36 @@ window.onkeydown = function (event) {
             case 'o':
                 sampleRatio = 1 + sampleRatio % 2;
                 pixelRatio = window.devicePixelRatio * sampleRatio;
-                showMessage(`set sampling ratio to ${sampleRatio}`);
                 resizeCanvas();
                 redraw();
+                showMessage(`set sampling ratio to ${sampleRatio}`);
+                event.preventDefault();
+                break;
+
+            case 's':
+                if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+                    if (sampleRatio === 1) {
+                        sampleRatio = 2;
+                        pixelRatio = window.devicePixelRatio * sampleRatio;
+                        resizeCanvas();
+                        redraw();
+                        saveScreenshotBlob().finally(() => {
+                            showMessage('saved screenshot');
+                            setTimeout(() => {
+                                sampleRatio = 1;
+                                pixelRatio = window.devicePixelRatio * sampleRatio;
+                                resizeCanvas();
+                                redraw();
+                            }, 0);
+                        });
+                    } else {
+                        redraw();
+                        saveScreenshotBlob().finally(() => {
+                            showMessage('saved screenshot');
+                        });
+                    }
+                    event.preventDefault();
+                }
                 break;
 
             default:
