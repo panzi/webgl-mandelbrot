@@ -48,6 +48,10 @@ const DEFAULT_ITERATIONS = 500;
 const DEFAULT_THRESHOLD = 4.0;
 const DEFAULT_FPS = 12;
 
+const MAX_ITERATIONS = 10000;
+const MAX_THRESHOLD = 10000;
+const MAX_FPS = 120;
+
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
@@ -55,17 +59,18 @@ let fractalParam = (params.get('fractal') || '').trim().toLowerCase() || 'mandel
 
 let animationFPS = +params.get('fps', DEFAULT_FPS);
 
-if (!isFinite(animationFPS) || animationFPS <= 0) {
+if (!isFinite(animationFPS)) {
     animationFPS = DEFAULT_FPS;
-} else if (animationFPS > 120) {
-    animationFPS = 120;
+} else if (animationFPS <= 0) {
+    animationFPS = 1;
+} else if (animationFPS > MAX_FPS) {
+    animationFPS = MAX_FPS;
 }
 
 document.getElementById('fps-input').value = animationFPS;
 
-// file:///home/panzi/src/html/mandelbrot/index.html?animation=-0.8269631235223067,-0.7110330380891499,18.62645149230957%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,5000%200.3072072708754504,-0.4839597324466828,0.00005575186299632657,1000%20-0.8269631235223067,-0.7110330380891499,18.62645149230957,5000
-let ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, 2000), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
-let THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, 1000), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
+let ITERATIONS = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, MAX_ITERATIONS), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
+let THRESHOLD = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, MAX_THRESHOLD), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
 let ANIMATION = animationParam ? animationParam.split(/\s+/).map(
     item => {
         const step = item ? item.split(',').map(Number) : [];
@@ -541,7 +546,7 @@ window.onkeydown = function (event) {
                 break;
 
             case 'i':
-                if (ITERATIONS < 10000) {
+                if (ITERATIONS < MAX_ITERATIONS) {
                     if (ITERATIONS >= 1000) {
                         ITERATIONS += 1000;
                     } else if (ITERATIONS >= 100) {
@@ -579,7 +584,7 @@ window.onkeydown = function (event) {
                 break;
 
             case 't':
-                if (THRESHOLD < 10000) {
+                if (THRESHOLD < MAX_THRESHOLD) {
                     if (THRESHOLD >= 1000) {
                         THRESHOLD += 1000;
                     } else if (THRESHOLD >= 100) {
