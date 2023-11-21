@@ -73,6 +73,7 @@ const INPUT_THROTTLE_MS = 500;
 const DEFAULT_ITERATIONS = 500;
 const DEFAULT_THRESHOLD = 4.0;
 const DEFAULT_FPS = 12;
+const DEFAULT_COLORS = 'BGR';
 
 const MAX_ITERATIONS = 10000;
 const MAX_THRESHOLD = 10000;
@@ -81,6 +82,7 @@ const MAX_FPS = 120;
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
+const colorsParam = (params.get('colors') || '').trim().toLowerCase() || DEFAULT_COLORS;
 
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let animationFPS = +params.get('fps', DEFAULT_FPS);
@@ -134,46 +136,86 @@ void main() {
 `;
 
 const COLOR_CODES = {
-    rainbowRBG: `\
-        v *= 0.005;
-        fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v, 1.0), 1.0, 1.0));
-        fragColor.w = 1.0;`,
+    RBG: `\
+v *= 0.005;
+fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v, 1.0), 1.0, 1.0));
+fragColor.w = 1.0;`,
 
-    rainbowGRB: `\
-        v *= 0.005;
-        fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
-        fragColor.w = 1.0;`,
+    GRB: `\
+v *= 0.005;
+fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
+fragColor.w = 1.0;`,
 
-    rainbowBGR: `\
-        v *= 0.005;
-        fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
-        fragColor.w = 1.0;`,
+    BGR: `\
+v *= 0.005;
+fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
+fragColor.w = 1.0;`,
 
-    rainbowRGB: `\
-        v *= 0.005;
-        fragColor.xyz = hsv2rgb(vec3(mod(v, 1.0), 1.0, 1.0));
-        fragColor.w = 1.0;`,
+    RGB: `\
+v *= 0.005;
+fragColor.xyz = hsv2rgb(vec3(mod(v, 1.0), 1.0, 1.0));
+fragColor.w = 1.0;`,
 
-    rainbowBRG: `\
-        v *= 0.005;
-        fragColor.xyz = hsv2rgb(vec3(mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
-        fragColor.w = 1.0;`,
+    BRG: `\
+v *= 0.005;
+fragColor.xyz = hsv2rgb(vec3(mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
+fragColor.w = 1.0;`,
 
-    rainbowGBR: `\
-        v *= 0.005;
-        fragColor.xyz = hsv2rgb(vec3(mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
-        fragColor.w = 1.0;`,
+    GBR: `\
+v *= 0.005;
+fragColor.xyz = hsv2rgb(vec3(mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
+fragColor.w = 1.0;`,
 
     grayscale: `\
-        v *= 0.0025;
-        v = mod(v, 2.0);
-        if (v > 1.0) {
-            v = 2.0 - v;
-        }
-        fragColor = vec4(v, v, v, 1.0);`
+v *= 0.0025;
+v = mod(v, 2.0);
+if (v > 1.0) {
+    v = 2.0 - v;
 }
+fragColor = vec4(v, v, v, 1.0);`,
 
-const DEFAULT_COLOR_CODE = COLOR_CODES.rainbowBGR.replace(/(^|\n)\s+/g, '$1');
+    horizon: `\
+v *= 0.005;
+v = mod(v, 1.0);
+float t;
+if (v < 0.16) {
+    t = v / 0.16;
+    fragColor.xyz = vec3(
+        mix(  0.0,        32.0/255.0, t),
+        mix(  7.0/255.0, 107.0/255.0, t),
+        mix(100.0/255.0, 203.0/255.0, t)
+    );
+} else if (v < 0.42) {
+    t = (v - 0.16) / (0.42 - 0.16);
+    fragColor.xyz = vec3(
+        mix( 32.0/255.0, 237.0/255.0, t),
+        mix(107.0/255.0,   1.0,       t),
+        mix(203.0/255.0,   1.0,       t)
+    );
+} else if (v < 0.6425) {
+    t = (v - 0.42) / (0.6425 - 0.42);
+    fragColor.xyz = vec3(
+        mix(237.0/255.0,   1.0,       t),
+        mix(  1.0,       170.0/255.0, t),
+        mix(  1.0,         0.0,       t)
+    );
+} else if (v < 0.8575) {
+    t = (v - 0.6425) / (0.8575 - 0.6425);
+    fragColor.xyz = vec3(
+        mix(  1.0,       0.0,       t),
+        mix(170.0/255.0, 2.0/255.0, t),
+        0.0
+    );
+} else {
+    t = (v - 0.8575) / (1.0 - 0.8575);
+    fragColor.xyz = vec3(
+        0.0,
+        mix(2.0/255.0,   7.0/255.0, t),
+        mix(0.0,       100.0/255.0, t)
+    );
+}
+fragColor.w = 1.0;`,
+}
 
 function getMandelbrotCode(iterations, threshold, colorCode) {
     return `\
@@ -248,8 +290,10 @@ void main() {
 }`;
 }
 
-let colorCode = DEFAULT_COLOR_CODE;
-document.getElementById('color-code').value = colorCode;
+let colors = colorsParam;
+let colorCode = COLOR_CODES[colorsParam] || COLOR_CODES[DEFAULT_COLORS];
+document.getElementById('color-code-preset').value = colorsParam || DEFAULT_COLORS;
+document.getElementById('color-code').value = COLOR_CODES[DEFAULT_COLORS];
 
 const canvas = document.getElementById("canvas");
 const fpsEl = document.getElementById("fps");
@@ -442,6 +486,9 @@ function setUrlParams() {
     }
     if (animationFPS !== DEFAULT_FPS) {
         params.push(`fps=${animationFPS}`);
+    }
+    if (colors !== DEFAULT_COLORS) {
+        params.push(`colors=${colors}`);
     }
     const query = params.join('&');
     const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;

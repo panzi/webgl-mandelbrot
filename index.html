@@ -202,31 +202,46 @@
       </tr>
       <tr id="color-code-preset-row">
         <td>
-          <label for="color-code-preset">Color</label>
+          <label for="color-code-preset">Colors</label>
         </td>
         <td>
           <span class="select-wrapper">
             <select id="color-code-preset" onchange="
               if (this.value === 'custom') {
                 document.getElementById('custom-color-code-row').style.display = '';
+                document.getElementById('derive-custom-color-code-row').style.display = 'none';
                 setColorCode(document.getElementById('color-code').value);
               } else {
                 document.getElementById('custom-color-code-row').style.display = 'none';
+                document.getElementById('derive-custom-color-code-row').style.display = '';
                 setColorCode(COLOR_CODES[this.value]);
+                colors = this.value;
+                setUrlParams();
               }
             ">
               <optgroup label="Rainbow">
-                <option value="rainbowRBG" selected>BGR</option>
-                <option value="rainbowGRB">GRB</option>
-                <option value="rainbowRBG">RBG</option>
-                <option value="rainbowGBR">GBR</option>
-                <option value="rainbowBRG">BRG</option>
-                <option value="rainbowRGB">RGB</option>
+                <option value="BGR" selected>BGR</option>
+                <option value="GRB">GRB</option>
+                <option value="RBG">RBG</option>
+                <option value="GBR">GBR</option>
+                <option value="BRG">BRG</option>
+                <option value="RGB">RGB</option>
               </optgroup>
               <option value="grayscale">Grayscale</option>
+              <option value="horizon">Horizon</option>
               <option value="custom">Custom</option>
             </select>
           </span>
+        </td>
+      </tr>
+      <tr id="derive-custom-color-code-row">
+        <td colspan="2">
+          <button type="button" class="right" onclick="
+            document.getElementById('color-code').value = colorCode;
+            document.getElementById('color-code-preset').value = 'custom';
+            document.getElementById('custom-color-code-row').style.display = '';
+            document.getElementById('derive-custom-color-code-row').style.display = 'none';
+          ">Derive custom colors from current colors</button>
         </td>
       </tr>
       <tr id="custom-color-code-row" style="display: none;">

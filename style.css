@@ -15,7 +15,8 @@ h3:first-child {
 
 select,
 input,
-textarea {
+textarea,
+button {
     color: white;
     background: rgba(0,0,0,0.5);
     padding: 0.1em 0.2em;
@@ -28,6 +29,13 @@ textarea {
     -webkit-appearance:none; /* Safari and Chrome */
     appearance: none;
     box-sizing: border-box;
+}
+
+input[type=button],
+button {
+    cursor: pointer;
+    padding: 0.25em 0.5em;
+    border-radius: 0.5em;
 }
 
 .select-wrapper,
@@ -57,7 +65,7 @@ select {
 textarea.fullsize {
     display: block;
     width: 100%;
-    min-height: 5em;
+    min-height: 10em;
     resize: vertical;
 }
 
@@ -69,6 +77,10 @@ input:focus-visible {
 
 input[type=number] {
     text-align: right;
+}
+
+.right {
+    float: right;
 }
 
 canvas {
