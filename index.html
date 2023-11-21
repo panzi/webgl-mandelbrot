@@ -34,7 +34,12 @@
   onwheel="event.stopPropagation();"
   onclick="event.stopPropagation();"
   ondblclick="event.stopPropagation();"
-  onkeydown="event.stopPropagation();"
+  onkeydown="
+    if (event.key === 'Escape') {
+      this.classList.add('hidden');
+    }
+    event.stopPropagation();
+  "
 >
   <h3>Hotkeys</h3>
   <table>
@@ -231,7 +236,10 @@
                 <option value="grayscaleBB">Black Background</option>
                 <option value="grayscaleWB">White Background</option>
               </optgroup>
-              <option value="horizon">Horizon</option>
+              <optgroup label="Horizon">
+                <option value="horizon1">sRGB</option>
+                <option value="horizon2">Linear</option>
+              </optgroup>
               <option value="custom">Custom</option>
             </select>
           </span>

@@ -14,6 +14,38 @@ function toFloatStr(value) {
     return str;
 }
 
+function sRgb8ToLinear(x) {
+    const f = x / 255.0;
+    return (
+        f < 0.04045 ? f / 12.92 :
+        Math.pow((f + 0.055) / 1.055, 2.4)
+    );
+}
+
+function glslColorSRgb8(r, g, b, a) {
+    const x = sRgb8ToLinear(r);
+    const y = sRgb8ToLinear(g);
+    const z = sRgb8ToLinear(b);
+
+    if (a == undefined) {
+        return `vec3(${toFloatStr(x)}, ${toFloatStr(y)}, ${toFloatStr(z)})`;
+    } else {
+        return `vec4(${toFloatStr(x)}, ${toFloatStr(y)}, ${toFloatStr(z)}, ${toFloatStr(a)})`;
+    }
+}
+
+function glslColorLinear8(r, g, b, a) {
+    const x = r / 255;
+    const y = g / 255;
+    const z = b / 255;
+
+    if (a == undefined) {
+        return `vec3(${toFloatStr(x)}, ${toFloatStr(y)}, ${toFloatStr(z)})`;
+    } else {
+        return `vec4(${toFloatStr(x)}, ${toFloatStr(y)}, ${toFloatStr(z)}, ${toFloatStr(a)})`;
+    }
+}
+
 function throttle(func, delay) {
     let args = null;
     let self = null;
@@ -180,45 +212,47 @@ v = mod(v, 2.0);
 v = v > 1.0 ? v - 1.0 : 1.0 - v;
 fragColor = vec4(v, v, v, 1.0);`,
 
-    horizon: `\
+    horizon1: `\
 v *= 0.005;
 v = mod(v, 1.0);
 float t;
 if (v < 0.16) {
     t = v / 0.16;
-    fragColor.xyz = vec3(
-        mix(  0.0,        32.0/255.0, t),
-        mix(  7.0/255.0, 107.0/255.0, t),
-        mix(100.0/255.0, 203.0/255.0, t)
-    );
+    fragColor.xyz = mix(${glslColorLinear8(0, 7, 100)}, ${glslColorLinear8(32, 107, 203)}, t);
 } else if (v < 0.42) {
     t = (v - 0.16) / (0.42 - 0.16);
-    fragColor.xyz = vec3(
-        mix( 32.0/255.0, 237.0/255.0, t),
-        mix(107.0/255.0,   1.0,       t),
-        mix(203.0/255.0,   1.0,       t)
-    );
+    fragColor.xyz = mix(${glslColorLinear8(32, 107, 203)}, ${glslColorLinear8(237, 255, 255)}, t);
 } else if (v < 0.6425) {
     t = (v - 0.42) / (0.6425 - 0.42);
-    fragColor.xyz = vec3(
-        mix(237.0/255.0,   1.0,       t),
-        mix(  1.0,       170.0/255.0, t),
-        mix(  1.0,         0.0,       t)
-    );
+    fragColor.xyz = mix(${glslColorLinear8(237, 255, 255)}, ${glslColorLinear8(255, 170, 0)}, t);
 } else if (v < 0.8575) {
     t = (v - 0.6425) / (0.8575 - 0.6425);
-    fragColor.xyz = vec3(
-        mix(  1.0,       0.0,       t),
-        mix(170.0/255.0, 2.0/255.0, t),
-        0.0
-    );
+    fragColor.xyz = mix(${glslColorLinear8(255, 170, 0)}, ${glslColorLinear8(0, 2, 0)}, t);
 } else {
     t = (v - 0.8575) / (1.0 - 0.8575);
-    fragColor.xyz = vec3(
-        0.0,
-        mix(2.0/255.0,   7.0/255.0, t),
-        mix(0.0,       100.0/255.0, t)
-    );
+    fragColor.xyz = mix(${glslColorLinear8(0, 2, 0)}, ${glslColorLinear8(0, 7, 100)}, t);
+}
+fragColor.w = 1.0;`,
+
+    horizon2: `\
+v *= 0.005;
+v = mod(v, 1.0);
+float t;
+if (v < 0.16) {
+    t = v / 0.16;
+    fragColor.xyz = mix(${glslColorSRgb8(0, 7, 100)}, ${glslColorSRgb8(32, 107, 203)}, t);
+} else if (v < 0.42) {
+    t = (v - 0.16) / (0.42 - 0.16);
+    fragColor.xyz = mix(${glslColorSRgb8(32, 107, 203)}, ${glslColorSRgb8(237, 255, 255)}, t);
+} else if (v < 0.6425) {
+    t = (v - 0.42) / (0.6425 - 0.42);
+    fragColor.xyz = mix(${glslColorSRgb8(237, 255, 255)}, ${glslColorSRgb8(255, 170, 0)}, t);
+} else if (v < 0.8575) {
+    t = (v - 0.6425) / (0.8575 - 0.6425);
+    fragColor.xyz = mix(${glslColorSRgb8(255, 170, 0)}, ${glslColorSRgb8(0, 2, 0)}, t);
+} else {
+    t = (v - 0.8575) / (1.0 - 0.8575);
+    fragColor.xyz = mix(${glslColorSRgb8(0, 2, 0)}, ${glslColorSRgb8(0, 7, 100)}, t);
 }
 fragColor.w = 1.0;`,
 }
