@@ -166,12 +166,18 @@ v *= 0.005;
 fragColor.xyz = hsv2rgb(vec3(mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
 fragColor.w = 1.0;`,
 
-    grayscale: `\
+    grayscaleBB: `\
 v *= 0.0025;
 v = mod(v, 2.0);
 if (v > 1.0) {
     v = 2.0 - v;
 }
+fragColor = vec4(v, v, v, 1.0);`,
+
+    grayscaleWB: `\
+v *= 0.0025;
+v = mod(v, 2.0);
+v = v > 1.0 ? v - 1.0 : 1.0 - v;
 fragColor = vec4(v, v, v, 1.0);`,
 
     horizon: `\
