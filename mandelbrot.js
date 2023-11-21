@@ -114,7 +114,7 @@ const MAX_FPS = 120;
 const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
-const colorsParam = (params.get('colors') || '').trim().toLowerCase() || DEFAULT_COLORS;
+const colorsParam = (params.get('colors') || '').trim() || DEFAULT_COLORS;
 
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let animationFPS = +params.get('fps', DEFAULT_FPS);
@@ -212,7 +212,7 @@ v = mod(v, 2.0);
 v = v > 1.0 ? v - 1.0 : 1.0 - v;
 fragColor = vec4(v, v, v, 1.0);`,
 
-    horizon1: `\
+    horizonS: `\
 v *= 0.005;
 v = mod(v, 1.0);
 float t;
@@ -234,7 +234,7 @@ if (v < 0.16) {
 }
 fragColor.w = 1.0;`,
 
-    horizon2: `\
+    horizonL: `\
 v *= 0.005;
 v = mod(v, 1.0);
 float t;
@@ -330,9 +330,9 @@ void main() {
 }`;
 }
 
-let colors = colorsParam;
-let colorCode = COLOR_CODES[colorsParam] || COLOR_CODES[DEFAULT_COLORS];
-document.getElementById('color-code-preset').value = colorsParam || DEFAULT_COLORS;
+let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
+let colorCode = COLOR_CODES[colors] || COLOR_CODES[DEFAULT_COLORS];
+document.getElementById('color-code-preset').value = colors || DEFAULT_COLORS;
 document.getElementById('color-code').value = COLOR_CODES[DEFAULT_COLORS];
 
 const canvas = document.getElementById("canvas");
