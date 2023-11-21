@@ -533,7 +533,7 @@ function setUrlParams() {
     const query = params.join('&');
     const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;
 
-    history.replaceState(null, null, `?${query}${hash}`);
+    history.pushState(null, null, `?${query}${hash}`);
 }
 
 const throttledSetUrlParams = throttle(setUrlParams, INPUT_THROTTLE_MS);
@@ -541,9 +541,13 @@ const debouncedSetUrlParams = debounce(setUrlParams, INPUT_THROTTLE_MS);
 
 getUrlHash();
 
-window.onhashchange = function () {
+window.onhashchange = function (event) {
+    const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1 } = viewPort;
     getUrlHash();
-    redraw();
+    const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2 } = viewPort;
+    if (x1 !== x2 || y1 !== y2 || z1 !== z2 || cr1 !== cr2 || ci1 !== ci2) {
+        redraw();
+    }
 };
 
 /*
