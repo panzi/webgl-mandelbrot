@@ -42,7 +42,33 @@ function throttle(func, delay) {
     };
 }
 
+function debounce(func, delay) {
+    let args = null;
+    let self = null;
+    let timer = null;
+
+    return function () {
+        if (timer !== null) {
+            clearTimeout(timer);
+        }
+
+        args = arguments;
+        self = this;
+        timer = setTimeout(function () {
+            timer = null;
+            try {
+                func.apply(self, args);
+            } finally {
+                args = null;
+                self = null;
+            }
+        }, delay);
+    };
+}
+
 const params = new URLSearchParams(location.search);
+
+const INPUT_THROTTLE_MS = 500;
 
 const DEFAULT_ITERATIONS = 500;
 const DEFAULT_THRESHOLD = 4.0;
@@ -97,7 +123,7 @@ let animation = animationParam ? animationParam.split(/\s+/).map(
 
 const ZOOM_FACTOR = 1.25;
 
-const vertexCode = `\
+const VERTEX_CODE = `\
 #version 300 es
 
 in vec4 vertexPosition;
@@ -107,7 +133,49 @@ void main() {
 }
 `;
 
-function getMandelbrotCode(iterations, threshold) {
+const COLOR_CODES = {
+    rainbowRBG: `\
+        v *= 0.005;
+        fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v, 1.0), 1.0, 1.0));
+        fragColor.w = 1.0;`,
+
+    rainbowGRB: `\
+        v *= 0.005;
+        fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
+        fragColor.w = 1.0;`,
+
+    rainbowBGR: `\
+        v *= 0.005;
+        fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
+        fragColor.w = 1.0;`,
+
+    rainbowRGB: `\
+        v *= 0.005;
+        fragColor.xyz = hsv2rgb(vec3(mod(v, 1.0), 1.0, 1.0));
+        fragColor.w = 1.0;`,
+
+    rainbowBRG: `\
+        v *= 0.005;
+        fragColor.xyz = hsv2rgb(vec3(mod(v + 2.0/3.0, 1.0), 1.0, 1.0));
+        fragColor.w = 1.0;`,
+
+    rainbowGBR: `\
+        v *= 0.005;
+        fragColor.xyz = hsv2rgb(vec3(mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
+        fragColor.w = 1.0;`,
+
+    grayscale: `\
+        v *= 0.0025;
+        v = mod(v, 2.0);
+        if (v > 1.0) {
+            v = 2.0 - v;
+        }
+        fragColor = vec4(v, v, v, 1.0);`
+}
+
+const DEFAULT_COLOR_CODE = COLOR_CODES.rainbowBGR.replace(/(^|\n)\s+/g, '$1');
+
+function getMandelbrotCode(iterations, threshold, colorCode) {
     return `\
 #version 300 es
 precision highp float;
@@ -130,10 +198,9 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float a = z.x*z.x + z.y*z.y;
         if (a >= ${toFloatStr(threshold * threshold)}) {
-            float v = (float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}) * 0.005;
+            float v = (float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))});
 
-            fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
-            fragColor.w = 1.0;
+            ${colorCode}
             return;
         }
         float zx = z.x*z.x - z.y*z.y + x;
@@ -144,7 +211,7 @@ void main() {
 }`;
 }
 
-function getJuliaCode(iterations, threshold) {
+function getJuliaCode(iterations, threshold, colorCode) {
     return `\
 #version 300 es
 precision highp float;
@@ -168,10 +235,9 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float a = z.x*z.x + z.y*z.y;
         if (a >= ${toFloatStr(threshold * threshold)}) {
-            float v = (float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}) * 0.005;
+            float v = (float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))});
 
-            fragColor.xyz = hsv2rgb(vec3(1.0 - mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
-            fragColor.w = 1.0;
+            ${colorCode}
             return;
         }
         float zx = z.x*z.x - z.y*z.y + c.x;
@@ -182,14 +248,23 @@ void main() {
 }`;
 }
 
+let colorCode = DEFAULT_COLOR_CODE;
+document.getElementById('color-code').value = colorCode;
+
 const canvas = document.getElementById("canvas");
 const fpsEl = document.getElementById("fps");
 const messagesEl = document.getElementById("messages");
 const helpEl = document.getElementById("help");
 
-function showMessage(message) {
-    console.log(message);
+const MSG_LEVEL_INFO = 'info';
+const MSG_LEVEL_WARNING = 'warning';
+const MSG_LEVEL_ERROR = 'error';
+
+function showMessage(message, level) {
+    level ||= 'info';
+    console[level](message);
     const lineEl = document.createElement('li');
+    lineEl.className = level;
     lineEl.appendChild(document.createTextNode(message));
     messagesEl.appendChild(lineEl);
     setTimeout(function () {
@@ -198,7 +273,7 @@ function showMessage(message) {
 }
 
 let redraw;
-let setFractal;
+let updateShader;
 let sampleRatio = 1;
 let pixelRatio = window.devicePixelRatio * sampleRatio;
 
@@ -208,6 +283,52 @@ function resizeCanvas() {
     canvas.width  = pixelRatio * window.innerWidth;
     canvas.height = pixelRatio * window.innerHeight;
 }
+
+function setColorCode(newColorCode) {
+    const oldColorCode = colorCode;
+    try {
+        colorCode = newColorCode;
+        updateShader();
+        redraw();
+    } catch (error) {
+        console.error(error);
+        showMessage(String(error), MSG_LEVEL_ERROR);
+
+        colorCode = oldColorCode;
+        updateShader();
+    }
+}
+
+const debouncedSetColorCode = debounce(setColorCode, INPUT_THROTTLE_MS);
+
+function setIterations(newIterations) {
+    if (!isFinite(newIterations) || newIterations <= 0 || (newIterations|0) !== newIterations) {
+        throw new Error(`illegal iterations: ${newIterations}`);
+    }
+    if (newIterations > MAX_ITERATIONS) {
+        newIterations = MAX_ITERATIONS;
+    }
+    iterations = newIterations;
+    updateShader();
+    redraw();
+    setUrlParams();
+}
+
+function setThreshold(newThreshold) {
+    if (!isFinite(newThreshold) || newThreshold <= 0) {
+        throw new Error(`illegal threshold: ${newThreshold}`);
+    }
+    if (newThreshold > MAX_THRESHOLD) {
+        newThreshold = MAX_THRESHOLD;
+    }
+    threshold = newThreshold;
+    updateShader();
+    redraw();
+    setUrlParams();
+}
+
+const debouncedSetIterations = debounce(setIterations, INPUT_THROTTLE_MS);
+const debouncedSetThreshold = debounce(setThreshold, INPUT_THROTTLE_MS);
 
 function saveScreenshotBlob() {
     return new Promise((resolve, reject) => {
@@ -328,7 +449,8 @@ function setUrlParams() {
     history.replaceState(null, null, `?${query}${hash}`);
 }
 
-const throttledSetUrlParams = throttle(setUrlParams, 500);
+const throttledSetUrlParams = throttle(setUrlParams, INPUT_THROTTLE_MS);
+const debouncedSetUrlParams = debounce(setUrlParams, INPUT_THROTTLE_MS);
 
 getUrlHash();
 
@@ -563,14 +685,14 @@ window.onkeydown = function (event) {
         switch (event.key) {
             case '+':
                 viewPort.z /= ZOOM_FACTOR;
-                throttledSetUrlParams();
+                debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
 
             case '-':
                 viewPort.z *= ZOOM_FACTOR;
-                throttledSetUrlParams();
+                debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -582,6 +704,9 @@ window.onkeydown = function (event) {
 
             case 'h':
                 if (helpEl.classList.contains('hidden')) {
+                    document.getElementById('fractal-input').value = fractal;
+                    document.getElementById('iterations-input').value = iterations;
+                    document.getElementById('threshold-input').value = threshold;
                     helpEl.classList.remove('hidden');
                 } else {
                     helpEl.classList.add('hidden');
@@ -601,9 +726,9 @@ window.onkeydown = function (event) {
                         iterations += 1;
                     }
                     showMessage(`increased iterations to ${iterations}`);
-                    setFractal();
+                    updateShader();
                     redraw();
-                    throttledSetUrlParams();
+                    debouncedSetUrlParams();
                 }
                 event.preventDefault();
                 break;
@@ -620,9 +745,9 @@ window.onkeydown = function (event) {
                         iterations -= 1;
                     }
                     showMessage(`decreased iterations to ${iterations}`);
-                    setFractal();
+                    updateShader();
                     redraw();
-                    throttledSetUrlParams();
+                    debouncedSetUrlParams();
                 }
                 event.preventDefault();
                 break;
@@ -639,9 +764,9 @@ window.onkeydown = function (event) {
                         threshold += 1;
                     }
                     showMessage(`increased threshold to ${threshold}`);
-                    setFractal();
+                    updateShader();
                     redraw();
-                    throttledSetUrlParams();
+                    debouncedSetUrlParams();
                 }
                 event.preventDefault();
                 break;
@@ -658,9 +783,9 @@ window.onkeydown = function (event) {
                         threshold -= 1;
                     }
                     showMessage(`decreased threshold to ${threshold}`);
-                    setFractal();
+                    updateShader();
                     redraw();
-                    throttledSetUrlParams();
+                    debouncedSetUrlParams();
                 }
                 event.preventDefault();
                 break;
@@ -751,7 +876,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.x += 0.1 * viewPort.z;
                 }
-                throttledSetUrlParams();
+                debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -762,7 +887,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.x -= 0.1 * viewPort.z;
                 }
-                throttledSetUrlParams();
+                debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -773,7 +898,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.y += 0.1 * viewPort.z;
                 }
-                throttledSetUrlParams();
+                debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -784,7 +909,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.y -= 0.1 * viewPort.z;
                 }
-                throttledSetUrlParams();
+                debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -796,7 +921,7 @@ window.onkeydown = function (event) {
 
             case 'm':
                 fractal = 'mandelbrot';
-                setFractal();
+                updateShader();
                 redraw();
                 setUrlParams();
                 event.preventDefault();
@@ -804,7 +929,7 @@ window.onkeydown = function (event) {
 
             case 'j':
                 fractal = 'julia';
-                setFractal();
+                updateShader();
                 redraw();
                 setUrlParams();
                 event.preventDefault();
@@ -815,7 +940,7 @@ window.onkeydown = function (event) {
                 pixelRatio = window.devicePixelRatio * sampleRatio;
                 resizeCanvas();
                 redraw();
-                showMessage(`set sampling ratio to ${sampleRatio}`);
+                showMessage(`set sampling ratio to ${sampleRatio}x${sampleRatio}`);
                 event.preventDefault();
                 break;
 
@@ -851,7 +976,7 @@ window.onkeydown = function (event) {
         }
     } catch (error) {
         console.error(error);
-        alert(String(error));
+        showMessage(String(error), MSG_LEVEL_ERROR);
     }
 };
 
@@ -917,31 +1042,26 @@ function setup() {
 
     const program = gl.createProgram();
     let fragmentCode = fractal === 'julia' ?
-        getJuliaCode(iterations, threshold) :
-        getMandelbrotCode(iterations, threshold);
+        getJuliaCode(iterations, threshold, colorCode) :
+        getMandelbrotCode(iterations, threshold, colorCode);
 
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexCode);
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_CODE);
     let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
 
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
 
-    setFractal = function setFractal () {
-        try {
-            gl.detachShader(program, fragmentShader);
-            gl.deleteShader(fragmentShader);
+    updateShader = function updateShader () {
+        gl.detachShader(program, fragmentShader);
+        gl.deleteShader(fragmentShader);
 
-            fragmentCode = fractal === 'julia' ?
-                getJuliaCode(iterations, threshold) :
-                getMandelbrotCode(iterations, threshold);
+        fragmentCode = fractal === 'julia' ?
+            getJuliaCode(iterations, threshold, colorCode) :
+            getMandelbrotCode(iterations, threshold, colorCode);
 
-            fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
-            gl.attachShader(program, fragmentShader);
-            linkProgram();
-        } catch (error) {
-            console.error(error);
-            alert(`Error changing fractal: ${error}`);
-        }
+        fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
+        gl.attachShader(program, fragmentShader);
+        linkProgram();
     };
 
     function linkProgram () {
@@ -1090,5 +1210,5 @@ try {
     }
 } catch (error) {
     console.error(error);
-    alert(`Error initializing: ${error}`);
+    showMessage(`Error initializing: ${error}`, MSG_LEVEL_ERROR);
 }

@@ -6,18 +6,63 @@ body, html {
     background-color: black;
     width: 100vw;
     height: 100vh;
+    font-family: sans-serif;
 }
 
-input {
+h3:first-child {
+    margin-top: 0;
+}
+
+select,
+input,
+textarea {
     color: white;
-    background: #0201f7;
+    background: rgba(0,0,0,0.5);
     padding: 0.1em 0.2em;
     border-radius: 0.25em;
-    border: 2px solid #7676ff;
+    border: 1px solid #777;
     outline-color: #9f9fff;
     outline-width: 2px;
+    outline-offset: 2px;
+    -moz-appearance:none; /* Firefox */
+    -webkit-appearance:none; /* Safari and Chrome */
+    appearance: none;
+    box-sizing: border-box;
 }
 
+.select-wrapper,
+input,
+select {
+    width: 100%;
+}
+
+.select-wrapper {
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+}
+
+.select-wrapper::after {
+    display: block;
+    color: #777;
+    content: "\25BE";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: 0 0.25em 0 0;
+    pointer-events:none;
+}
+
+textarea.fullsize {
+    display: block;
+    width: 100%;
+    min-height: 5em;
+    resize: vertical;
+}
+
+select:focus-visible,
+textarea:focus-visible,
 input:focus-visible {
     outline-style: solid;
 }
@@ -68,6 +113,14 @@ body, html, canvas {
     list-style: none;
     padding: 0;
     pointer-events: none;
+}
+
+.warning {
+    color: #ffbb55;
+}
+
+.error {
+    color: #ff6655;
 }
 
 #help {
@@ -122,12 +175,11 @@ kbd {
     line-height: 1;
     white-space: nowrap;
 }
+
 .hotkey {
     line-height: 1.5;
     white-space: nowrap;
 }
-
-
 
 ::-webkit-scrollbar {
     width: 16px;

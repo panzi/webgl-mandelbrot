@@ -29,11 +29,13 @@
 <div id="fps" class="message hidden">X fps</div>
 <ol id="messages" class="message"></ol>
 <div id="help" class="message hidden"
-    onmousedown="event.stopPropagation();"
-    ontouchstart="event.stopPropagation();"
-    onwheel="event.stopPropagation();"
-    onclick="event.stopPropagation();"
-    ondblclick="event.stopPropagation();">
+  onmousedown="event.stopPropagation();"
+  ontouchstart="event.stopPropagation();"
+  onwheel="event.stopPropagation();"
+  onclick="event.stopPropagation();"
+  ondblclick="event.stopPropagation();"
+  onkeydown="event.stopPropagation();"
+>
   <h3>Hotkeys</h3>
   <table>
     <tbody>
@@ -159,8 +161,81 @@
   <table>
     <tbody>
       <tr>
-        <td><input type="number" min="1" max="120" value="12" id="fps-input" onchange="animationFPS = +this.value; setUrlParams();" /></td>
+        <td><label for="fractal-input">Fractal</label></td>
+        <td>
+          <span class="select-wrapper">
+            <select id="fractal-input" onchange="
+              fractal = this.value;
+              updateShader();
+              redraw();
+              setUrlParams();
+            ">
+              <option value="mandelbrot">Mandelbrot</option>
+              <option value="julia">Julia</option>
+            </select>
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <td><label for="iterations-input">Iterations</label></td>
+        <td>
+          <input type="number" min="1" max="10000" value="100" id="iterations-input"
+            oninput="debouncedSetIterations(+this.value)"
+            onchange="setIterations(+this.value)" />
+        </td>
+      </tr>
+      <tr>
+        <td><label for="threshold-input">Threshold</label></td>
+        <td>
+          <input type="number" min="1" max="10000" value="100" id="threshold-input"
+            oninput="debouncedSetThreshold(+this.value);"
+            onchange="setThreshold(+this.value);" />
+        </td>
+      </tr>
+      <tr>
         <td><label for="fps-input">Animation frames per second</label></td>
+        <td>
+          <input type="number" min="1" max="120" value="12" id="fps-input"
+            oninput="animationFPS = +this.value; debouncedSetUrlParams();"
+            onchange="animationFPS = +this.value; setUrlParams();"
+          /></td>
+      </tr>
+      <tr id="color-code-preset-row">
+        <td>
+          <label for="color-code-preset">Color</label>
+        </td>
+        <td>
+          <span class="select-wrapper">
+            <select id="color-code-preset" onchange="
+              if (this.value === 'custom') {
+                document.getElementById('custom-color-code-row').style.display = '';
+                setColorCode(document.getElementById('color-code').value);
+              } else {
+                document.getElementById('custom-color-code-row').style.display = 'none';
+                setColorCode(COLOR_CODES[this.value]);
+              }
+            ">
+              <optgroup label="Rainbow">
+                <option value="rainbowRBG" selected>BGR</option>
+                <option value="rainbowGRB">GRB</option>
+                <option value="rainbowRBG">RBG</option>
+                <option value="rainbowGBR">GBR</option>
+                <option value="rainbowBRG">BRG</option>
+                <option value="rainbowRGB">RGB</option>
+              </optgroup>
+              <option value="grayscale">Grayscale</option>
+              <option value="custom">Custom</option>
+            </select>
+          </span>
+        </td>
+      </tr>
+      <tr id="custom-color-code-row" style="display: none;">
+        <td colspan="2">
+          <textarea class="fullsize" id="color-code"
+            oninput="debouncedSetColorCode(this.value);"
+            onchange="setColorCode(this.value);"
+          ></textarea>
+        </td>
       </tr>
     </tbody>
   </table>
