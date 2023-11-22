@@ -631,7 +631,7 @@ window.onmousedown = function (event) {
  */
 window.onmouseup = function (event) {
     if (!grabbing || (event.buttons & 1)) return;
-    setUrlParams();
+    debouncedSetUrlParams();
     if (!touching) {
         fpsEl.classList.add('hidden');
     }
@@ -785,7 +785,7 @@ window.addEventListener('touchmove', function (event) {
  */
 function handleTouchEnd (event) {
     event.preventDefault();
-    setUrlParams();
+    debouncedSetUrlParams();
 
     for (const touch of event.changedTouches) {
         activeTouches.delete(touch.identifier);
