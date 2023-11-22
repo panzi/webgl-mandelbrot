@@ -347,9 +347,15 @@ document.getElementById('color-code').value = COLOR_CODES[DEFAULT_COLORS];
 function cycleColors(offset) {
     const presets = document.getElementById('color-code-preset');
     let index = (presets.options.selectedIndex + offset) % presets.options.length;
+    if (index < 0) {
+        index += presets.options.length;
+    }
     let value = presets.options[index].value;
     if (value === 'custom') {
         index = (index + offset) % presets.options.length;
+        if (index < 0) {
+            index += presets.options.length;
+        }
         value = presets.options[index].value;
     }
     presets.value = value;
