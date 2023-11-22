@@ -201,15 +201,13 @@ fragColor.w = 1.0;`,
     grayscaleBB: `\
 v *= 0.0025;
 v = mod(v, 2.0);
-if (v > 1.0) {
-    v = 2.0 - v;
-}
+v = 1.0 - abs(v - 1.0);
 fragColor = vec4(v, v, v, 1.0);`,
 
     grayscaleWB: `\
 v *= 0.0025;
 v = mod(v, 2.0);
-v = v > 1.0 ? v - 1.0 : 1.0 - v;
+v = abs(v - 1.0);
 fragColor = vec4(v, v, v, 1.0);`,
 
     horizonS: `\
@@ -255,6 +253,17 @@ if (v < 0.16) {
     fragColor.xyz = mix(${glslColorSRgb8(0, 2, 0)}, ${glslColorSRgb8(0, 7, 100)}, t);
 }
 fragColor.w = 1.0;`,
+
+    sepia: `\
+v *= 0.0005;
+v = mod(v, 2.0);
+v = abs(v - 1.0);
+fragColor.rgb = mix(
+    vec3(0.16202937563911096, 0.05448027644244237, 0.006995410187265387),
+    vec3(0.8879231178819663, 0.7758222183174236, 0.6104955708078648),
+    v
+);
+fragColor.a = 1.0;`,
 }
 
 function getMandelbrotCode(iterations, threshold, colorCode) {
