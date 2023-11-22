@@ -1232,12 +1232,11 @@ function setup() {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
 
-    let w = canvas.width;
-    let h = canvas.height;
-
     linkProgram();
     gl.useProgram(program);
 
+    let w = canvas.width;
+    let h = canvas.height;
     let timestamp = Date.now();
 
     redraw = function redraw() {
@@ -1261,6 +1260,7 @@ function setup() {
         }
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length);
+        gl.flush();
 
         const now = Date.now();
         const duration = (now - timestamp) / 1000;
