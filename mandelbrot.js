@@ -16,13 +16,15 @@ function toFloatStr(value) {
 
 function sRgb8ToLinear(x) {
     const f = x / 255.0;
-    return (
-        f < 0.04045 ? f / 12.92 :
-        Math.pow((f + 0.055) / 1.055, 2.4)
-    );
+    // cheaper, less accurate conversion which is also applied in reverse in the shader
+    return Math.pow(f, 2.2);
+    // return (
+    //     f < 0.04045 ? f / 12.92 :
+    //     Math.pow((f + 0.055) / 1.055, 2.4)
+    // );
 }
 
-function glslColorSRgb8(r, g, b, a) {
+function glslColorRGB8AsLinear(r, g, b, a) {
     const x = sRgb8ToLinear(r);
     const y = sRgb8ToLinear(g);
     const z = sRgb8ToLinear(b);
@@ -34,7 +36,7 @@ function glslColorSRgb8(r, g, b, a) {
     }
 }
 
-function glslColorLinear8(r, g, b, a) {
+function glslColorRGB8(r, g, b, a) {
     const x = r / 255;
     const y = g / 255;
     const z = b / 255;
@@ -216,19 +218,19 @@ v = mod(v, 1.0);
 float t;
 if (v < 0.16) {
     t = v / 0.16;
-    fragColor.xyz = mix(${glslColorLinear8(0, 7, 100)}, ${glslColorLinear8(32, 107, 203)}, t);
+    fragColor.xyz = mix(${glslColorRGB8(0, 7, 100)}, ${glslColorRGB8(32, 107, 203)}, t);
 } else if (v < 0.42) {
     t = (v - 0.16) / (0.42 - 0.16);
-    fragColor.xyz = mix(${glslColorLinear8(32, 107, 203)}, ${glslColorLinear8(237, 255, 255)}, t);
+    fragColor.xyz = mix(${glslColorRGB8(32, 107, 203)}, ${glslColorRGB8(237, 255, 255)}, t);
 } else if (v < 0.6425) {
     t = (v - 0.42) / (0.6425 - 0.42);
-    fragColor.xyz = mix(${glslColorLinear8(237, 255, 255)}, ${glslColorLinear8(255, 170, 0)}, t);
+    fragColor.xyz = mix(${glslColorRGB8(237, 255, 255)}, ${glslColorRGB8(255, 170, 0)}, t);
 } else if (v < 0.8575) {
     t = (v - 0.6425) / (0.8575 - 0.6425);
-    fragColor.xyz = mix(${glslColorLinear8(255, 170, 0)}, ${glslColorLinear8(0, 2, 0)}, t);
+    fragColor.xyz = mix(${glslColorRGB8(255, 170, 0)}, ${glslColorRGB8(0, 2, 0)}, t);
 } else {
     t = (v - 0.8575) / (1.0 - 0.8575);
-    fragColor.xyz = mix(${glslColorLinear8(0, 2, 0)}, ${glslColorLinear8(0, 7, 100)}, t);
+    fragColor.xyz = mix(${glslColorRGB8(0, 2, 0)}, ${glslColorRGB8(0, 7, 100)}, t);
 }
 fragColor.w = 1.0;`,
 
@@ -238,20 +240,45 @@ v = mod(v, 1.0);
 float t;
 if (v < 0.16) {
     t = v / 0.16;
-    fragColor.xyz = mix(${glslColorSRgb8(0, 7, 100)}, ${glslColorSRgb8(32, 107, 203)}, t);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(0, 7, 100)}, ${glslColorRGB8AsLinear(32, 107, 203)}, t);
 } else if (v < 0.42) {
     t = (v - 0.16) / (0.42 - 0.16);
-    fragColor.xyz = mix(${glslColorSRgb8(32, 107, 203)}, ${glslColorSRgb8(237, 255, 255)}, t);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(32, 107, 203)}, ${glslColorRGB8AsLinear(237, 255, 255)}, t);
 } else if (v < 0.6425) {
     t = (v - 0.42) / (0.6425 - 0.42);
-    fragColor.xyz = mix(${glslColorSRgb8(237, 255, 255)}, ${glslColorSRgb8(255, 170, 0)}, t);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(237, 255, 255)}, ${glslColorRGB8AsLinear(255, 170, 0)}, t);
 } else if (v < 0.8575) {
     t = (v - 0.6425) / (0.8575 - 0.6425);
-    fragColor.xyz = mix(${glslColorSRgb8(255, 170, 0)}, ${glslColorSRgb8(0, 2, 0)}, t);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(255, 170, 0)}, ${glslColorRGB8AsLinear(0, 2, 0)}, t);
 } else {
     t = (v - 0.8575) / (1.0 - 0.8575);
-    fragColor.xyz = mix(${glslColorSRgb8(0, 2, 0)}, ${glslColorSRgb8(0, 7, 100)}, t);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(0, 2, 0)}, ${glslColorRGB8AsLinear(0, 7, 100)}, t);
 }
+fragColor.w = 1.0;`,
+
+    horizonC: `\
+v *= 0.005;
+v = mod(v, 1.0);
+float t;
+if (v < 0.16) {
+    t = v / 0.16;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(0, 7, 100)}, ${glslColorRGB8AsLinear(32, 107, 203)}, t);
+} else if (v < 0.42) {
+    t = (v - 0.16) / (0.42 - 0.16);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(32, 107, 203)}, ${glslColorRGB8AsLinear(237, 255, 255)}, t);
+} else if (v < 0.6425) {
+    t = (v - 0.42) / (0.6425 - 0.42);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(237, 255, 255)}, ${glslColorRGB8AsLinear(255, 170, 0)}, t);
+} else if (v < 0.8575) {
+    t = (v - 0.6425) / (0.8575 - 0.6425);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(255, 170, 0)}, ${glslColorRGB8AsLinear(0, 2, 0)}, t);
+} else {
+    t = (v - 0.8575) / (1.0 - 0.8575);
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(0, 2, 0)}, ${glslColorRGB8AsLinear(0, 7, 100)}, t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
 fragColor.w = 1.0;`,
 
     sepia: `\
@@ -265,24 +292,191 @@ fragColor.rgb = mix(
 );
 fragColor.a = 1.0;`,
 
+    gay: `\
+v *= 0.05;
+v = mod(v, 1.0);
+if (v < 1.0/6.0) {
+    fragColor = ${glslColorRGB8(209, 48, 28, 1.0)};
+} else if (v < 2.0/6.0) {
+    fragColor = ${glslColorRGB8(228, 142, 45, 1.0)};
+} else if (v < 3.0/6.0) {
+    fragColor = ${glslColorRGB8(252, 239, 69, 1.0)};
+} else if (v < 4.0/6.0) {
+    fragColor = ${glslColorRGB8(58, 128, 41, 1.0)};
+} else if (v < 5.0/6.0) {
+    fragColor = ${glslColorRGB8(30, 72, 248, 1.0)};
+} else {
+    fragColor = ${glslColorRGB8(108, 18, 134, 1.0)};
+}`,
+
+    gayGrad: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 1.0/6.0) {
+    t = v * 6.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(209, 48, 28)}, ${glslColorRGB8AsLinear(228, 142, 45)}, t);
+} else if (v < 2.0/6.0) {
+    t = (v - 1.0/6.0) * 6.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(228, 142, 45)}, ${glslColorRGB8AsLinear(252, 239, 69)}, t);
+} else if (v < 3.0/6.0) {
+    t = (v - 2.0/6.0) * 6.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(252, 239, 69)}, ${glslColorRGB8AsLinear(58, 128, 41)}, t);
+} else if (v < 4.0/6.0) {
+    t = (v - 3.0/6.0) * 6.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(58, 128, 41)}, ${glslColorRGB8AsLinear(30, 72, 248)}, t);
+} else if (v < 5.0/6.0) {
+    t = (v - 4.0/6.0) * 6.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(30, 72, 248)}, ${glslColorRGB8AsLinear(108, 18, 134)}, t);
+} else {
+    t = (v - 5.0/6.0) * 6.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(108, 18, 134)}, ${glslColorRGB8AsLinear(209, 48, 28)}, t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
     trans: `\
 v *= 0.05;
 v = mod(v, 2.0);
 v = 1.0 - abs(v - 1.0);
 if (v < 2.0/5.0) {
-    fragColor = ${glslColorLinear8(124, 204, 247, 1.0)};
+    fragColor = ${glslColorRGB8(124, 204, 247, 1.0)};
 } else if (v < 4.0/5.0) {
-    fragColor = ${glslColorLinear8(233, 174, 186, 1.0)};
+    fragColor = ${glslColorRGB8(233, 174, 186, 1.0)};
 } else {
     fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+}`,
+
+    transGrad: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 1.0/5.0) {
+    t = v * 5.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(124, 204, 247)}, ${glslColorRGB8AsLinear(233, 174, 186)}, t);
+} else if (v < 2.0/5.0) {
+    t = (v - 1.0/5.0) * 5.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(233, 174, 186)}, vec3(1.0, 1.0, 1.0), t);
+} else if (v < 3.0/5.0) {
+    t = (v - 2.0/5.0) * 5.0;
+    fragColor.xyz = mix(vec3(1.0, 1.0, 1.0), ${glslColorRGB8AsLinear(233, 174, 186)}, t);
+} else if (v < 4.0/5.0) {
+    t = (v - 3.0/5.0) * 5.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(233, 174, 186)}, ${glslColorRGB8AsLinear(124, 204, 247)}, t);
+} else {
+    fragColor.xyz = ${glslColorRGB8AsLinear(124, 204, 247)};
 }
-`
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
+    bi: `\
+v *= 0.05;
+v = mod(v, 1.0);
+if (v < 2.0/5.0) {
+    fragColor = ${glslColorRGB8(196, 44, 112, 1.0)};
+} else if (v < 3.0/5.0) {
+    fragColor = ${glslColorRGB8(145, 82, 149, 1.0)};
+} else {
+    fragColor = ${glslColorRGB8(19, 51, 165, 1.0)};
+}`,
+
+    biGrad: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 2.0/5.0) {
+    t = v * 2.5;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(196, 44, 112)}, ${glslColorRGB8AsLinear(145, 82, 149)}, t);
+} else if (v < 3.0/5.0) {
+    t = (v - 2.0/5.0) * 5.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(145, 82, 149)}, ${glslColorRGB8AsLinear(19, 51, 165)}, t);
+} else {
+    t = (v - 3.0/5.0) * 2.5;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(19, 51, 165)}, ${glslColorRGB8AsLinear(196, 44, 112)}, t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
+    pan: `\
+v *= 0.05;
+v = mod(v, 1.0);
+if (v < 1.0/3.0) {
+    fragColor = ${glslColorRGB8(233, 61, 141, 1.0)};
+} else if (v < 2.0/3.0) {
+    fragColor = ${glslColorRGB8(248, 219, 64, 1.0)};
+} else {
+    fragColor = ${glslColorRGB8(87, 175, 250, 1.0)};
+}`,
+
+    panGrad: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 1.0/3.0) {
+    t = v * 3.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(233, 61, 141)}, ${glslColorRGB8AsLinear(248, 219, 64)}, t);
+} else if (v < 2.0/3.0) {
+    t = (v - 1.0/3.0) * 3.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(248, 219, 64)}, ${glslColorRGB8AsLinear(87, 175, 250)}, t);
+} else {
+    t = (v - 2.0/3.0) * 3.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(87, 175, 250)}, ${glslColorRGB8AsLinear(233, 61, 141)}, t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
+    nb: `\
+v *= 0.05;
+v = mod(v, 1.0);
+if (v < 1.0/4.0) {
+    fragColor = ${glslColorRGB8(253, 245, 84, 1.0)};
+} else if (v < 2.0/4.0) {
+    fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+} else if (v < 3.0/4.0) {
+    fragColor = ${glslColorRGB8(146, 92, 204, 1.0)};
+} else {
+    fragColor = ${glslColorRGB8(41, 41, 41, 1.0)};
+}`,
+
+    nbGrad: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 1.0/4.0) {
+    t = v * 4.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(253, 245, 84)}, vec3(1.0, 1.0, 1.0), t);
+} else if (v < 2.0/4.0) {
+    t = (v - 1.0/4.0) * 4.0;
+    fragColor.xyz = mix(vec3(1.0, 1.0, 1.0), ${glslColorRGB8AsLinear(146, 92, 204)}, t);
+} else if (v < 3.0/4.0) {
+    t = (v - 2.0/4.0) * 4.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(146, 92, 204)}, ${glslColorRGB8AsLinear(41, 41, 41)}, t);
+} else {
+    t = (v - 3.0/4.0) * 4.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(41, 41, 41)}, ${glslColorRGB8AsLinear(253, 245, 84)}, t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
 }
 
 function getMandelbrotCode(iterations, threshold, colorCode) {
     return `\
 #version 300 es
-precision highp float;
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
 
 uniform vec2 canvasSize;
 uniform vec3 viewPort;
@@ -318,7 +512,11 @@ void main() {
 function getJuliaCode(iterations, threshold, colorCode) {
     return `\
 #version 300 es
-precision highp float;
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
 
 uniform vec2 canvasSize;
 uniform vec3 viewPort;
@@ -401,6 +599,7 @@ function showMessage(message, level) {
 
 let redraw;
 let updateShader;
+let toggleColorSpace;
 let sampleRatio = 1;
 let pixelRatio = window.devicePixelRatio * sampleRatio;
 
@@ -528,28 +727,36 @@ const mousePos = {
     y: 0,
 };
 
+const DEFAULT_JULIA_X = 0;
+const DEFAULT_JULIA_Z = 2;
+const DEFAULT_MANDELBROT_X = -0.5;
+const DEFAULT_MANDELBROT_Z = 2.5;
+const DEFAULT_Y = 0;
+const DEFAULT_CR = -0.744;
+const DEFAULT_CI = 0.148;
+
 const viewPort = {
-    x: -0.5,
+    x: 0,
     y: 0,
-    z: 2.5,
-    cr: -0.744,
-    ci: 0.148,
+    z: 1,
+    cr: 0,
+    ci: 0,
 };
 
-if (fractal === 'julia') {
-    viewPort.x = 0;
-    viewPort.z = 2;
-}
-
 function getUrlHash() {
-    if (location.hash.startsWith('#!')) {
-        const [x, y, z, cr, ci] = location.hash.slice(2).split(',');
-        viewPort.x = nanColesce(+x, viewPort.x);
-        viewPort.y = nanColesce(+y, viewPort.y);
-        viewPort.z = nanColesce(+z, viewPort.z);
-        viewPort.cr = nanColesce(+cr, viewPort.cr);
-        viewPort.ci = nanColesce(+ci, viewPort.ci);
+    const [x, y, z, cr, ci] = location.hash.startsWith('#!') ?
+        location.hash.slice(2).split(',') : [];
+    if (fractal === 'julia') {
+        viewPort.x = nanColesce(+x, DEFAULT_JULIA_X);
+        viewPort.z = nanColesce(+z, DEFAULT_JULIA_Z);
+    } else {
+        viewPort.x = nanColesce(+x, DEFAULT_MANDELBROT_X);
+        viewPort.z = nanColesce(+z, DEFAULT_MANDELBROT_Z);
     }
+
+    viewPort.y  = nanColesce(+y, DEFAULT_Y);
+    viewPort.cr = nanColesce(+cr, DEFAULT_CR);
+    viewPort.ci = nanColesce(+ci, DEFAULT_CI);
 }
 
 function setUrlParams() {
@@ -1090,7 +1297,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 's':
-                if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+                if (event.altKey || event.metaKey || event.shiftKey) {
+                    // pass
+                } else if (event.ctrlKey) {
                     if (sampleRatio === 1) {
                         sampleRatio = 2;
                         pixelRatio = window.devicePixelRatio * sampleRatio;
@@ -1112,6 +1321,8 @@ window.onkeydown = function (event) {
                         });
                     }
                     event.preventDefault();
+                } else {
+                    toggleColorSpace();
                 }
                 break;
 
@@ -1195,7 +1406,17 @@ function setup() {
         throw new TypeError("WebGL2 not supported!");
     }
 
-    // gl.drawingBufferColorSpace = "display-p3";
+    toggleColorSpace = function toggleColorSpace() {
+        if (gl.drawingBufferColorSpace === 'srgb') {
+            gl.drawingBufferColorSpace = "display-p3";
+            showMessage('set color space to Display-P3');
+        } else {
+            gl.drawingBufferColorSpace = "srgb";
+            showMessage('set color space to sRGB');
+        }
+        redraw();
+    }
+    // gl.enable(gl.DITHER);
 
     const program = gl.createProgram();
     let fragmentCode = fractal === 'julia' ?

@@ -99,6 +99,14 @@
         <td>Toggle 2x2 over-sampling, aka screenshot-mode. Makes it look nicer, but also render much slower.</td>
       </tr>
       <tr>
+        <td class="hotkey"><kbd>S</kbd></td>
+        <td>
+          Toggle between sRGB and Display-P3 color space.
+          (Somehow the colors don't come out quite right either way, I don't know enough about that stuff.
+          Choose what looks good to you.)
+        </td>
+      </tr>
+      <tr>
         <td class="hotkey"><kbd>Ctrl</kbd>+<kbd>S</kbd></td>
         <td>Save a screenshot. The screenshot will be recorded in 2x2 over-sampling mode, i.e. it will be twice the size of your window.</td>
       </tr>
@@ -245,11 +253,27 @@
                 <option value="grayscaleWB">White Background</option>
               </optgroup>
               <optgroup label="Horizon" title="These are slow.">
-                <option value="horizonS">Horizon sRGB</option>
-                <option value="horizonL">Horizon Linear</option>
+                <option value="horizonS">Horizon (sRGB)</option>
+                <option value="horizonL">Horizon (wrong color space)</option>
+                <option value="horizonC">Horizon (color corrected)</option>
               </optgroup>
               <option value="sepia">Sepia</option>
-              <option value="trans">Trans Pride</option>
+              <optgroup label="Pride">
+                <optgroup label="Bands">
+                  <option value="gay">Gay Pride</option>
+                  <option value="trans">Trans Pride</option>
+                  <option value="bi">Bi Pride</option>
+                  <option value="pan">Pan Pride</option>
+                  <option value="nb">Non-Binary Pride</option>
+                </optgroup>
+                <optgroup label="Gradients">
+                  <option value="gayGrad">Gay Pride (Gradient)</option>
+                  <option value="transGrad">Trans Pride (Gradient)</option>
+                  <option value="biGrad">Bi Pride (Gradient)</option>
+                  <option value="panGrad">Pan Pride (Gradient)</option>
+                  <option value="nbGrad">Non-Binary Pride (Gradient)</option>
+                </optgroup>
+              </optgroup>
               <option value="custom">Custom</option>
             </select>
           </span>
