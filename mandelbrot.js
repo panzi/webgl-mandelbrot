@@ -576,6 +576,8 @@ function cycleColors(offset) {
     colors = value;
     setUrlParams();
     showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
+    document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
+    document.getElementById('custom-color-code-row').classList.add('hidden');
 }
 
 const canvas = document.getElementById("canvas");
