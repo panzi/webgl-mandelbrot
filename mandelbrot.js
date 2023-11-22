@@ -100,7 +100,7 @@ function debounce(func, delay) {
 
 const params = new URLSearchParams(location.search);
 
-const INPUT_THROTTLE_MS = 500;
+const INPUT_THROTTLE_MS = 250;
 
 const DEFAULT_ITERATIONS = 500;
 const DEFAULT_THRESHOLD = 4.0;
@@ -1144,7 +1144,7 @@ window.addEventListener('wheel', function (event) {
         } else {
             viewPort.cr = event.deltaY < 0 ? viewPort.cr / CR_FACTOR : viewPort.cr * CR_FACTOR;
         }
-        setUrlParams();
+        debouncedSetUrlParams();
         redraw();
         return;
     }
@@ -1162,7 +1162,7 @@ window.addEventListener('wheel', function (event) {
     viewPort.y -= dy * z1 - dy * z2;
     viewPort.z = z2;
 
-    setUrlParams();
+    debouncedSetUrlParams();
     redraw();
 }, { passive: false });
 
