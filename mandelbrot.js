@@ -613,6 +613,9 @@ window.onmouseup = function (event) {
     helpEl.classList.add('hidden');
 }
 
+/**
+ * @param {MouseEvent} event 
+ */
 window.onmousemove = function (event) {
     if (!animating) {
         showCursor();
@@ -620,11 +623,15 @@ window.onmousemove = function (event) {
     const x = event.clientX * pixelRatio;
     const y = event.clientY * pixelRatio;
     if (grabbing) {
-        const dx = x - mousePos.x;
-        const dy = y - mousePos.y;
+        let dx = x - mousePos.x;
+        let dy = y - mousePos.y;
+        if (event.shiftKey) {
+            dx *= 0.1;
+            dy *= 0.1;
+        }
         if (event.ctrlKey && fractal === 'julia') {
-            viewPort.cr /= Math.pow(2, dx / canvas.height);
-            viewPort.ci /= Math.pow(2, dy / canvas.height);
+            viewPort.cr += dx / canvas.height;
+            viewPort.ci += dy / canvas.height;
         } else {
             viewPort.x -= dx / canvas.height * viewPort.z;
             viewPort.y += dy / canvas.height * viewPort.z;
@@ -722,8 +729,8 @@ window.addEventListener('touchmove', function (event) {
     const dy = y2 - y1;
 
     if (touchCount2 > 2 && fractal === 'julia') {
-        viewPort.cr /= Math.pow(2, dx / canvas.height);
-        viewPort.ci /= Math.pow(2, dy / canvas.height);
+        viewPort.cr += dx / canvas.height;
+        viewPort.ci += dy / canvas.height;
     } else {
         viewPort.x -= dx / canvas.height * viewPort.z;
         viewPort.y += dy / canvas.height * viewPort.z;
@@ -963,7 +970,7 @@ window.onkeydown = function (event) {
 
             case 'ArrowRight':
                 if (event.ctrlKey) {
-                    viewPort.cr *= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+                    viewPort.cr += event.shiftKey ? 0.0001 : 0.001;
                 } else {
                     viewPort.x += 0.1 * viewPort.z;
                 }
@@ -974,7 +981,7 @@ window.onkeydown = function (event) {
 
             case 'ArrowLeft':
                 if (event.ctrlKey) {
-                    viewPort.cr /= event.shiftKey ? CR_FACTOR_FINE : CR_FACTOR;
+                    viewPort.cr -= event.shiftKey ? 0.0001 : 0.001;
                 } else {
                     viewPort.x -= 0.1 * viewPort.z;
                 }
@@ -985,7 +992,7 @@ window.onkeydown = function (event) {
 
             case 'ArrowUp':
                 if (event.ctrlKey) {
-                    viewPort.ci *= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+                    viewPort.ci += event.shiftKey ? 0.0001 : 0.001;
                 } else {
                     viewPort.y += 0.1 * viewPort.z;
                 }
@@ -996,7 +1003,7 @@ window.onkeydown = function (event) {
 
             case 'ArrowDown':
                 if (event.ctrlKey) {
-                    viewPort.ci /= event.shiftKey ? CI_FACTOR_FINE : CI_FACTOR;
+                    viewPort.ci -= event.shiftKey ? 0.0001 : 0.001;
                 } else {
                     viewPort.y -= 0.1 * viewPort.z;
                 }
