@@ -108,6 +108,7 @@ const DEFAULT_ITERATIONS = 500;
 const DEFAULT_THRESHOLD = 4.0;
 const DEFAULT_FPS = 12;
 const DEFAULT_COLORS = 'BGR';
+const DEFAULT_COLORSPACE = 'srgb';
 
 const MAX_ITERATIONS = 10000;
 const MAX_THRESHOLD = 10000;
@@ -117,6 +118,7 @@ const iterationsParam = params.get('iterations');
 const thresholdParam = params.get('threshold');
 const animationParam = params.get('animation');
 const colorsParam = (params.get('colors') || '').trim() || DEFAULT_COLORS;
+const colorSpaceParam = (params.get('colorspace') || '').trim() || DEFAULT_COLORSPACE;
 
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let animationFPS = +params.get('fps', DEFAULT_FPS);
@@ -597,9 +599,9 @@ function showMessage(message, level) {
     }, 5000);
 }
 
+let gl;
 let redraw;
 let updateShader;
-let toggleColorSpace;
 let sampleRatio = 1;
 let pixelRatio = window.devicePixelRatio * sampleRatio;
 
@@ -779,6 +781,10 @@ function setUrlParams() {
     }
     if (colors !== DEFAULT_COLORS) {
         params.push(`colors=${colors}`);
+    }
+    const colorSpace = gl.drawingBufferColorSpace;
+    if (colorSpace !== DEFAULT_COLORSPACE) {
+        params.push(`colorspace=${colorSpace}`);
     }
     const query = params.join('&');
     const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;
@@ -1323,6 +1329,8 @@ window.onkeydown = function (event) {
                     event.preventDefault();
                 } else {
                     toggleColorSpace();
+                    setUrlParams();
+                    event.preventDefault();
                 }
                 break;
 
@@ -1390,6 +1398,17 @@ window.addEventListener('wheel', function (event) {
     redraw();
 }, { passive: false });
 
+function toggleColorSpace() {
+    if (gl.drawingBufferColorSpace === 'srgb') {
+        gl.drawingBufferColorSpace = "display-p3";
+        showMessage('set color space to Display-P3');
+    } else {
+        gl.drawingBufferColorSpace = "srgb";
+        showMessage('set color space to sRGB');
+    }
+    redraw();
+}
+
 function createShader(gl, shaderType, sourceCode) {
     const shader = gl.createShader(shaderType);
     gl.shaderSource(shader, sourceCode.trim());
@@ -1401,20 +1420,13 @@ function createShader(gl, shaderType, sourceCode) {
 }
 
 function setup() {
-    const gl = canvas.getContext("webgl2");
+    gl = canvas.getContext("webgl2");
     if (!gl) {
         throw new TypeError("WebGL2 not supported!");
     }
 
-    toggleColorSpace = function toggleColorSpace() {
-        if (gl.drawingBufferColorSpace === 'srgb') {
-            gl.drawingBufferColorSpace = "display-p3";
-            showMessage('set color space to Display-P3');
-        } else {
-            gl.drawingBufferColorSpace = "srgb";
-            showMessage('set color space to sRGB');
-        }
-        redraw();
+    if (colorSpaceParam === 'srgb' || colorSpaceParam === 'display-p3') {
+        gl.drawingBufferColorSpace = colorSpaceParam;
     }
     // gl.enable(gl.DITHER);
 
