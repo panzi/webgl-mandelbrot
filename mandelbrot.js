@@ -199,13 +199,13 @@ fragColor.xyz = hsv2rgb(vec3(mod(v + 1.0/3.0, 1.0), 1.0, 1.0));
 fragColor.w = 1.0;`,
 
     grayscaleBB: `\
-v *= 0.0025;
+v *= 0.01;
 v = mod(v, 2.0);
 v = 1.0 - abs(v - 1.0);
 fragColor = vec4(v, v, v, 1.0);`,
 
     grayscaleWB: `\
-v *= 0.0025;
+v *= 0.01;
 v = mod(v, 2.0);
 v = abs(v - 1.0);
 fragColor = vec4(v, v, v, 1.0);`,
