@@ -264,6 +264,19 @@ fragColor.rgb = mix(
     pow(v, 16.0)
 );
 fragColor.a = 1.0;`,
+
+    trans: `\
+v *= 0.05;
+v = mod(v, 2.0);
+v = 1.0 - abs(v - 1.0);
+if (v < 2.0/5.0) {
+    fragColor = ${glslColorLinear8(124, 204, 247, 1.0)};
+} else if (v < 4.0/5.0) {
+    fragColor = ${glslColorLinear8(233, 174, 186, 1.0)};
+} else {
+    fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+}
+`
 }
 
 function getMandelbrotCode(iterations, threshold, colorCode) {
@@ -1181,6 +1194,8 @@ function setup() {
     if (!gl) {
         throw new TypeError("WebGL2 not supported!");
     }
+
+    // gl.drawingBufferColorSpace = "display-p3";
 
     const program = gl.createProgram();
     let fragmentCode = fractal === 'julia' ?
