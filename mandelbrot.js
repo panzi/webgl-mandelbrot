@@ -1028,7 +1028,11 @@ window.onkeydown = function (event) {
                 break;
 
             case 'Escape':
-                stopAnimation();
+                if (!helpEl.classList.contains('hidden')) {
+                    helpEl.classList.add('hidden');
+                } else {
+                    stopAnimation();
+                }
                 event.preventDefault();
                 break;
 
