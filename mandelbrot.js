@@ -335,6 +335,21 @@ let colorCode = COLOR_CODES[colors] || COLOR_CODES[DEFAULT_COLORS];
 document.getElementById('color-code-preset').value = colors || DEFAULT_COLORS;
 document.getElementById('color-code').value = COLOR_CODES[DEFAULT_COLORS];
 
+function cycleColors(offset) {
+    const presets = document.getElementById('color-code-preset');
+    let index = (presets.options.selectedIndex + offset) % presets.options.length;
+    let value = presets.options[index].value;
+    if (value === 'custom') {
+        index = (index + offset) % presets.options.length;
+        value = presets.options[index].value;
+    }
+    presets.value = value;
+    setColorCode(COLOR_CODES[value]);
+    colors = value;
+    setUrlParams();
+    showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
+}
+
 const canvas = document.getElementById("canvas");
 const fpsEl = document.getElementById("fps");
 const messagesEl = document.getElementById("messages");
@@ -1066,6 +1081,16 @@ window.onkeydown = function (event) {
                     }
                     event.preventDefault();
                 }
+                break;
+
+            case 'c':
+                cycleColors(1);
+                event.preventDefault();
+                break;
+
+            case 'C':
+                cycleColors(-1);
+                event.preventDefault();
                 break;
 
             default:

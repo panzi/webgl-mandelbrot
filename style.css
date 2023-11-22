@@ -75,6 +75,12 @@ input:focus-visible {
     outline-style: solid;
 }
 
+option,
+optgroup {
+    background: #01017a;
+    color: white;
+}
+
 input[type=number] {
     text-align: right;
 }
