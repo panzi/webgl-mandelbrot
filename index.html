@@ -44,126 +44,147 @@
 
   <h3>Settings</h3>
 
-  <table>
-    <tbody>
-      <tr>
-        <td><label for="fractal-input">Fractal</label></td>
-        <td>
-          <span class="select-wrapper">
-            <select id="fractal-input" onchange="
-              fractal = this.value;
-              updateShader();
-              redraw();
-              setUrlParams();
-            ">
-              <option value="mandelbrot">Mandelbrot</option>
-              <option value="julia">Julia</option>
-            </select>
-          </span>
-        </td>
-      </tr>
-      <tr>
-        <td><label for="iterations-input">Iterations</label></td>
-        <td>
-          <input type="number" min="1" max="10000" value="100" id="iterations-input"
-            oninput="debouncedSetIterations(+this.value)"
-            onchange="setIterations(+this.value)" />
-        </td>
-      </tr>
-      <tr>
-        <td><label for="threshold-input">Threshold</label></td>
-        <td>
-          <input type="number" min="1" max="10000" value="100" id="threshold-input"
-            oninput="debouncedSetThreshold(+this.value);"
-            onchange="setThreshold(+this.value);" />
-        </td>
-      </tr>
-      <tr>
-        <td><label for="fps-input">Animation frames per second</label></td>
-        <td>
-          <input type="number" min="1" max="120" value="12" id="fps-input"
-            oninput="animationFPS = +this.value; debouncedSetUrlParams();"
-            onchange="animationFPS = +this.value; setUrlParams();"
-          /></td>
-      </tr>
-      <tr id="color-code-preset-row">
-        <td>
-          <label for="color-code-preset">Colors</label>
-        </td>
-        <td>
-          <span class="select-wrapper">
-            <select id="color-code-preset" onchange="
-              if (this.value === 'custom') {
-                document.getElementById('custom-color-code-row').classList.remove('hidden');
-                document.getElementById('derive-custom-color-code-row').classList.add('hidden');
-                setColorCode(document.getElementById('color-code').value);
-              } else {
-                document.getElementById('custom-color-code-row').classList.add('hidden');
-                document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
-                setColorCode(COLOR_CODES[this.value]);
-                colors = this.value;
+  <form action="javascript:;" onsubmit="
+    event.preventDefault();
+    helpEl.classList.add('hidden');
+  ">
+    <table>
+      <tbody>
+        <tr>
+          <td><label for="fractal-input">Fractal</label></td>
+          <td>
+            <span class="select-wrapper">
+              <select id="fractal-input" onchange="
+                fractal = this.value;
+                updateShader();
+                redraw();
                 setUrlParams();
-              }
-            ">
-              <optgroup label="Rainbow">
-                <option value="BGR" selected>BGR</option>
-                <option value="GRB">GRB</option>
-                <option value="RBG">RBG</option>
-                <option value="GBR">GBR</option>
-                <option value="BRG">BRG</option>
-                <option value="RGB">RGB</option>
-              </optgroup>
-              <optgroup label="Grayscale">
-                <option value="grayscaleBB">Black Background</option>
-                <option value="grayscaleWB">White Background</option>
-              </optgroup>
-              <optgroup label="Horizon" title="These are slow.">
-                <option value="horizonS">Horizon (sRGB)</option>
-                <option value="horizonL">Horizon (wrong color space)</option>
-                <option value="horizonC">Horizon (color corrected)</option>
-              </optgroup>
-              <option value="sepia">Sepia</option>
-              <optgroup label="Pride">
-                <optgroup label="Bands">
-                  <option value="gay">Gay Pride</option>
-                  <option value="trans">Trans Pride</option>
-                  <option value="bi">Bi Pride</option>
-                  <option value="pan">Pan Pride</option>
-                  <option value="nb">Non-Binary Pride</option>
+              ">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+              </select>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td><label for="iterations-input">Iterations</label></td>
+          <td>
+            <input type="number" min="1" max="10000" value="100" id="iterations-input"
+              oninput="debouncedSetIterations(+this.value)"
+              onchange="setIterations(+this.value)" />
+          </td>
+        </tr>
+        <tr>
+          <td><label for="threshold-input">Threshold</label></td>
+          <td>
+            <input type="number" min="1" max="10000" value="100" id="threshold-input"
+              oninput="debouncedSetThreshold(+this.value);"
+              onchange="setThreshold(+this.value);" />
+          </td>
+        </tr>
+        <tr>
+          <td><label for="fps-input">Animation frames per second</label></td>
+          <td>
+            <input type="number" min="1" max="120" value="12" id="fps-input"
+              oninput="animationFPS = +this.value; debouncedSetUrlParams();"
+              onchange="animationFPS = +this.value; setUrlParams();"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td><label for="colorspace-input">Color-Space</label></td>
+          <td>
+            <span class="select-wrapper">
+              <select id="colorspace-input" onchange="
+                gl.drawingBufferColorSpace = this.value;
+                redraw();
+                setUrlParams();
+              ">
+                <option value="srgb">sRGB</option>
+                <option value="display-p3">Display-P3</option>
+              </select>
+            </span>
+          </td>
+        </tr>
+        <tr id="color-code-preset-row">
+          <td>
+            <label for="color-code-preset">Colors</label>
+          </td>
+          <td>
+            <span class="select-wrapper">
+              <select id="color-code-preset" onchange="
+                if (this.value === 'custom') {
+                  document.getElementById('custom-color-code-row').classList.remove('hidden');
+                  document.getElementById('derive-custom-color-code-row').classList.add('hidden');
+                  setColorCode(document.getElementById('color-code').value);
+                } else {
+                  document.getElementById('custom-color-code-row').classList.add('hidden');
+                  document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
+                  setColorCode(COLOR_CODES[this.value]);
+                  colors = this.value;
+                  setUrlParams();
+                }
+              ">
+                <optgroup label="Rainbow">
+                  <option value="BGR" selected>BGR</option>
+                  <option value="GRB">GRB</option>
+                  <option value="RBG">RBG</option>
+                  <option value="GBR">GBR</option>
+                  <option value="BRG">BRG</option>
+                  <option value="RGB">RGB</option>
                 </optgroup>
-                <optgroup label="Gradients">
-                  <option value="gayGrad">Gay Pride (Gradient)</option>
-                  <option value="transGrad">Trans Pride (Gradient)</option>
-                  <option value="biGrad">Bi Pride (Gradient)</option>
-                  <option value="panGrad">Pan Pride (Gradient)</option>
-                  <option value="nbGrad">Non-Binary Pride (Gradient)</option>
+                <optgroup label="Grayscale">
+                  <option value="grayscaleBB">Black Background</option>
+                  <option value="grayscaleWB">White Background</option>
                 </optgroup>
-              </optgroup>
-              <option value="custom">Custom</option>
-            </select>
-          </span>
-        </td>
-      </tr>
-      <tr id="derive-custom-color-code-row">
-        <td colspan="2">
-          <button type="button" class="right" onclick="
-            document.getElementById('color-code').value = colorCode;
-            document.getElementById('color-code-preset').value = 'custom';
-            document.getElementById('custom-color-code-row').style.display = '';
-            document.getElementById('derive-custom-color-code-row').style.display = 'none';
-          ">Derive custom colors from current colors</button>
-        </td>
-      </tr>
-      <tr id="custom-color-code-row" class="hidden">
-        <td colspan="2">
-          <textarea class="fullsize" id="color-code"
-            oninput="debouncedSetColorCode(this.value);"
-            onchange="setColorCode(this.value);"
-          ></textarea>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+                <optgroup label="Horizon" title="These are slow.">
+                  <option value="horizonS">Horizon (sRGB)</option>
+                  <option value="horizonC">Horizon (color corrected)</option>
+                  <option value="horizonL">Horizon (wrong color space)</option>
+                </optgroup>
+                <option value="sepia">Sepia</option>
+                <optgroup label="Pride">
+                  <optgroup label="Flags">
+                    <option value="gay">Gay Pride</option>
+                    <option value="trans">Trans Pride</option>
+                    <option value="bi">Bi Pride</option>
+                    <option value="pan">Pan Pride</option>
+                    <option value="nb">Non-Binary Pride</option>
+                  </optgroup>
+                  <optgroup label="Gradients">
+                    <option value="gayGrad">Gay Pride (Gradient)</option>
+                    <option value="transGrad">Trans Pride (Gradient)</option>
+                    <option value="biGrad">Bi Pride (Gradient)</option>
+                    <option value="panGrad">Pan Pride (Gradient)</option>
+                    <option value="nbGrad">Non-Binary Pride (Gradient)</option>
+                  </optgroup>
+                </optgroup>
+                <option value="custom">Custom</option>
+              </select>
+            </span>
+          </td>
+        </tr>
+        <tr id="derive-custom-color-code-row">
+          <td colspan="2">
+            <button type="button" class="right" onclick="
+              document.getElementById('color-code').value = colorCode;
+              document.getElementById('color-code-preset').value = 'custom';
+              document.getElementById('custom-color-code-row').style.display = '';
+              document.getElementById('derive-custom-color-code-row').style.display = 'none';
+            ">Derive custom colors from current colors</button>
+          </td>
+        </tr>
+        <tr id="custom-color-code-row" class="hidden">
+          <td colspan="2">
+            <textarea class="fullsize" id="color-code"
+              oninput="debouncedSetColorCode(this.value);"
+              onchange="setColorCode(this.value);"
+            ></textarea>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </form>
 
   <h3>Hotkeys</h3>
   <table>

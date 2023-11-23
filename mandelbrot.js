@@ -586,7 +586,7 @@ const messagesEl = document.getElementById("messages");
 const helpEl = document.getElementById("help");
 
 const MSG_LEVEL_INFO = 'info';
-const MSG_LEVEL_WARNING = 'warning';
+const MSG_LEVEL_WARNING = 'warn';
 const MSG_LEVEL_ERROR = 'error';
 
 function showMessage(message, level) {
@@ -1054,15 +1054,22 @@ window.onkeydown = function (event) {
                 break;
 
             case 'f':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 toggleFullscreen();
                 event.preventDefault();
                 break;
 
             case 'h':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (helpEl.classList.contains('hidden')) {
                     document.getElementById('fractal-input').value = fractal;
                     document.getElementById('iterations-input').value = iterations;
                     document.getElementById('threshold-input').value = threshold;
+                    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
                     helpEl.classList.remove('hidden');
                 } else {
                     helpEl.classList.add('hidden');
@@ -1071,6 +1078,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 'i':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (iterations < MAX_ITERATIONS) {
                     if (iterations >= 1000) {
                         iterations += 1000;
@@ -1085,11 +1095,15 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
+                    document.getElementById('iterations-input').value = iterations;
                 }
                 event.preventDefault();
                 break;
 
             case 'I':
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
                 if (iterations > 1) {
                     if (iterations > 1000) {
                         iterations -= 1000;
@@ -1104,11 +1118,15 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
+                    document.getElementById('iterations-input').value = iterations;
                 }
                 event.preventDefault();
                 break;
 
             case 't':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (threshold < MAX_THRESHOLD) {
                     if (threshold >= 1000) {
                         threshold += 1000;
@@ -1123,11 +1141,15 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
+                    document.getElementById('threshold-input').value = threshold;
                 }
                 event.preventDefault();
                 break;
 
             case 'T':
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
                 if (threshold > 1) {
                     if (threshold > 1000) {
                         threshold -= 1000;
@@ -1142,16 +1164,23 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
+                    document.getElementById('threshold-input').value = threshold;
                 }
                 event.preventDefault();
                 break;
 
             case 'p':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 playAnimation(animation);
                 event.preventDefault();
                 break;
 
             case 'P':
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
                 if (animation) {
                     const revAnimation = animation.slice().reverse();
                     for (let index = revAnimation.length - 2; index >= 0; -- index) {
@@ -1163,6 +1192,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 'a':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (!animation) {
                     animation = [];
                 }
@@ -1174,13 +1206,17 @@ window.onkeydown = function (event) {
                 break;
 
             case 'A':
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
                 if (animation && animation.length > 0) {
+                    const framenr = animation.length;
                     const item = animation.pop();
                     if (animation.length === 0) {
                         animation = null;
                     }
                     setUrlParams();
-                    showMessage(`removed key-frame #${animation.length + 1}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                    showMessage(`removed key-frame #${framenr}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
                 } else {
                     showMessage('no more key-frames to remove');
                 }
@@ -1188,6 +1224,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 'u':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (animation && animation.length > 0) {
                     const item = animation[animation.length - 1];
                     item.x  = viewPort.x;
@@ -1203,6 +1242,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 'd':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (animation && animation.length > 0) {
                     const item = animation[animation.length - 1];
                     item.d += event.altKey ? 100 : 1000;
@@ -1215,6 +1257,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 'D':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (animation && animation.length > 0) {
                     const item = animation[animation.length - 1];
                     item.d = Math.max(0, item.d - event.altKey ? 100 : 1000);
@@ -1280,22 +1325,33 @@ window.onkeydown = function (event) {
                 break;
 
             case 'm':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 fractal = 'mandelbrot';
                 updateShader();
                 redraw();
                 setUrlParams();
+                document.getElementById('fractal-input').value = fractal;
                 event.preventDefault();
                 break;
 
             case 'j':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 fractal = 'julia';
                 updateShader();
                 redraw();
                 setUrlParams();
+                document.getElementById('fractal-input').value = fractal;
                 event.preventDefault();
                 break;
 
             case 'o':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 sampleRatio = 1 + sampleRatio % 2;
                 pixelRatio = window.devicePixelRatio * sampleRatio;
                 resizeCanvas();
@@ -1306,7 +1362,7 @@ window.onkeydown = function (event) {
 
             case 's':
                 if (event.altKey || event.metaKey || event.shiftKey) {
-                    // pass
+                    break;
                 } else if (event.ctrlKey) {
                     if (sampleRatio === 1) {
                         sampleRatio = 2;
@@ -1332,16 +1388,23 @@ window.onkeydown = function (event) {
                 } else {
                     toggleColorSpace();
                     setUrlParams();
+                    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
                     event.preventDefault();
                 }
                 break;
 
             case 'c':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 cycleColors(1);
                 event.preventDefault();
                 break;
 
             case 'C':
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
                 cycleColors(-1);
                 event.preventDefault();
                 break;
@@ -1350,11 +1413,55 @@ window.onkeydown = function (event) {
                 // console.log(event);
                 break;
         }
+
+        if (!event.defaultPrevented && !IGNORE_KEYS.has(event.key)) {
+            const items = [];
+            if (event.shiftKey) {
+                items.push('Shift');
+            }
+            if (event.ctrlKey) {
+                items.push('Ctrl');
+            }
+            if (event.altKey) {
+                items.push('Alt');
+            }
+            if (event.metaKey) {
+                items.push('Meta');
+            }
+            items.push(
+                event.key === ' ' ? 'Space' :
+                event.key !== 'ß' && /^\p{Lowercase_Letter}\p{Mn}*$/u.test(event.key) ? event.key.toUpperCase() :
+                event.key
+            );
+            showMessage(`unknown hotkey: ${items.join('+')}`, MSG_LEVEL_WARNING);
+        }
     } catch (error) {
         console.error(error);
         showMessage(String(error), MSG_LEVEL_ERROR);
     }
 };
+
+const IGNORE_KEYS = new Set([
+    'Alt',
+    'AltGraph',
+    'CapsLock',
+    'Control',
+    'Fn',
+    'FnLock',
+    'Hyper',
+    'Meta',
+    'NumLock',
+    'ScrollLock',
+    'Shift',
+    'Super',
+    'Symbol',
+    'SymbolLock',
+    'ContextMenu',
+]);
+
+for (let index = 1; index <= 16; ++ index) {
+    IGNORE_KEYS.add(`F${index}`);
+}
 
 const CI_FACTOR = 1.01;
 const CR_FACTOR = 1.001;

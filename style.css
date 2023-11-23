@@ -133,7 +133,7 @@ body, html, canvas {
     pointer-events: none;
 }
 
-.warning {
+.warn {
     color: #ffbb55;
 }
 
