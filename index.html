@@ -169,8 +169,8 @@
             <button type="button" class="right" onclick="
               document.getElementById('color-code').value = colorCode;
               document.getElementById('color-code-preset').value = 'custom';
-              document.getElementById('custom-color-code-row').style.display = '';
-              document.getElementById('derive-custom-color-code-row').style.display = 'none';
+              document.getElementById('custom-color-code-row').classList.remove('hidden');
+              document.getElementById('derive-custom-color-code-row').classList.add('hidden');
             ">Derive custom colors from current colors</button>
           </td>
         </tr>
