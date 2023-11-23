@@ -83,9 +83,9 @@
           </td>
         </tr>
         <tr>
-          <td><label for="fps-input">Animation frames per second</label></td>
+          <td><label for="fps-input">Animation frames per second. <code>0</code> means automatic.</label></td>
           <td>
-            <input type="number" min="1" max="120" value="12" id="fps-input"
+            <input type="number" min="0" max="120" value="12" id="fps-input"
               oninput="animationFPS = +this.value; debouncedSetUrlParams();"
               onchange="animationFPS = +this.value; setUrlParams();"
             />
@@ -286,6 +286,10 @@
       <tr>
         <td class="hotkey"><kbd>Shift</kbd>+<kbd>P</kbd></td>
         <td>Play animation in reverse</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>L</kbd></td>
+        <td>Loop animation forward and backward</td>
       </tr>
       <tr>
         <td class="hotkey"><kbd>Esc</kbd></td>

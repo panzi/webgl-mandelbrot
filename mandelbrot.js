@@ -123,7 +123,7 @@ const colorSpaceParam = (params.get('colorspace') || '').trim() || DEFAULT_COLOR
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let animationFPS = +params.get('fps', DEFAULT_FPS);
 
-if (!isFinite(animationFPS) || animationFPS <= 0) {
+if (!isFinite(animationFPS) || animationFPS < 0) {
     animationFPS = DEFAULT_FPS;
 } else if (animationFPS > MAX_FPS) {
     animationFPS = MAX_FPS;
@@ -725,6 +725,7 @@ let grabbing = false;
 let touching = false;
 let animating = false;
 let animationTimer = null;
+let isAnimationFrame = false;
 
 const mousePos = {
     x: 0,
@@ -1191,6 +1192,20 @@ window.onkeydown = function (event) {
                 event.preventDefault();
                 break;
 
+            case 'l':
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
+                if (animation) {
+                    const revAnimation = animation.slice().reverse();
+                    for (let index = revAnimation.length - 2; index >= 0; -- index) {
+                        revAnimation[index + 1].d = revAnimation[index].d;
+                    }
+                    revAnimation.shift();
+                    playAnimation([ ...animation, ...revAnimation ], true);
+                }
+                event.preventDefault();
+                break;
             case 'a':
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
@@ -1630,16 +1645,24 @@ function setup() {
 function stopAnimation() {
     console.log("stopping animation");
     if (animationTimer !== null) {
-        clearInterval(animationTimer);
+        if (isAnimationFrame) {
+            cancelAnimationFrame(animationTimer)
+        } else {
+            clearInterval(animationTimer);
+        }
         animationTimer = null;
     }
     animating = false;
 }
 
-function playAnimation(animation) {
+function playAnimation(animation, loop) {
     console.log("starting animation...");
     if (animationTimer !== null) {
-        clearInterval(animationTimer);
+        if (isAnimationFrame) {
+            cancelAnimationFrame(animationTimer)
+        } else {
+            clearInterval(animationTimer);
+        }
         animationTimer = null;
     }
 
@@ -1662,11 +1685,13 @@ function playAnimation(animation) {
     hideCursor();
     let animationIndex = 0;
     let timestamp = Date.now();
-    animationTimer = setInterval(function () {
+
+    function animateFrame() {
         const now = Date.now();
         const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1, _ } = animation[animationIndex];
         const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = animation[animationIndex + 1];
-        let interp = (now - timestamp) / d;
+        const dt = now - timestamp;
+        let interp = dt / d;
         if (interp > 1) {
             viewPort.x = x2;
             viewPort.y = y2;
@@ -1676,13 +1701,18 @@ function playAnimation(animation) {
             timestamp = now;
             ++ animationIndex;
             if (animationIndex + 1 >= animation.length) {
-                clearInterval(animationTimer);
-                animating = false;
-                animationTimer = null;
+                if (loop) {
+                    animationIndex = 0;
+                } else {
+                    animating = false;
+                    animationTimer = null;
+                }
             }
-        } else if (x1 === x2 && y1 === y2 && z1 === z2 && cr1 === cr2 && ci1 === ci2) {
-            return;
-        } else {
+            if (animating) {
+                queueNextFrame();
+            }
+            redraw();
+        } else if (x1 !== x2 || y1 !== y2 || z1 !== z2 || cr1 !== cr2 || ci1 !== ci2) {
             interp = (
                 z1 > z2 ? 1.0 - Math.pow(1.0 - interp, 16) :
                 z1 < z2 ? Math.pow(interp, 16) :
@@ -1694,9 +1724,24 @@ function playAnimation(animation) {
             viewPort.z = z1 * inv + z2 * interp;
             viewPort.cr = cr1 * inv + cr2 * interp;
             viewPort.ci = ci1 * inv + ci2 * interp;
+            if (animating) {
+                queueNextFrame();
+            }
+            redraw();
         }
-        redraw();
-    }, 1000/animationFPS);
+    }
+
+    function queueNextFrame() {
+        if (animationFPS <= 0) {
+            animationTimer = requestAnimationFrame(animateFrame);
+            isAnimationFrame = true;
+        } else {
+            animationTimer = setTimeout(animateFrame, 1000/animationFPS);
+            isAnimationFrame = false;
+        }
+    }
+
+    queueNextFrame();
 }
 
 try {
