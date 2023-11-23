@@ -474,6 +474,41 @@ fragColor.x = pow(fragColor.x, 1.0/2.2);
 fragColor.y = pow(fragColor.y, 1.0/2.2);
 fragColor.z = pow(fragColor.z, 1.0/2.2);
 fragColor.w = 1.0;`,
+
+    ace: `\
+v *= 0.05;
+v = mod(v, 1.0);
+if (v < 1.0/4.0) {
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+} else if (v < 2.0/4.0) {
+    fragColor = ${glslColorRGB8(146, 146, 146, 1.0)};
+} else if (v < 3.0/4.0) {
+    fragColor = ${glslColorRGB8(1.0, 1.0, 1.0, 1.0)};
+} else {
+    fragColor = ${glslColorRGB8(117, 21, 126, 1.0)};
+}`,
+
+    aceGrad: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 1.0/4.0) {
+    t = v * 4.0;
+    fragColor.xyz = mix(vec3(0.0, 0.0, 0.0), ${glslColorRGB8AsLinear(146, 146, 146)}, t);
+} else if (v < 2.0/4.0) {
+    t = (v - 1.0/4.0) * 4.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(146, 146, 146)}, vec3(1.0, 1.0, 1.0), t);
+} else if (v < 3.0/4.0) {
+    t = (v - 2.0/4.0) * 4.0;
+    fragColor.xyz = mix(vec3(1.0, 1.0, 1.0), ${glslColorRGB8AsLinear(117, 21, 126)}, t);
+} else {
+    t = (v - 3.0/4.0) * 4.0;
+    fragColor.xyz = mix(${glslColorRGB8AsLinear(117, 21, 126)}, vec3(0.0, 0.0, 0.0), t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
 }
 
 function getMandelbrotCode(iterations, threshold, colorCode) {
@@ -1142,10 +1177,10 @@ window.onkeydown = function (event) {
                         threshold += 10;
                     } else if (threshold >= 2) {
                         threshold += 1;
-                    } else if (threshold >= 2) {
-                        threshold = (((threshold * 10)|0) + 1) / 10;
+                    } else if (threshold >= 1) {
+                        threshold = (Math.ceil(threshold * 10) + 1) / 10;
                     } else {
-                        threshold = (((threshold * 100)|0) + 1) / 100;
+                        threshold = (Math.ceil(threshold * 100) + 1) / 100;
                     }
                     showMessage(`increased threshold to ${threshold}`);
                     updateShader();
@@ -1170,9 +1205,9 @@ window.onkeydown = function (event) {
                     } else if (threshold > 2) {
                         threshold -= 1;
                     } else if (threshold > 1) {
-                        threshold = (((threshold * 10)|0) - 1) / 10;
+                        threshold = (Math.ceil(threshold * 10) - 1) / 10;
                     } else {
-                        threshold = (((threshold * 100)|0) - 1) / 100;
+                        threshold = (Math.ceil(threshold * 100) - 1) / 100;
                     }
                     showMessage(`decreased threshold to ${threshold}`);
                     updateShader();
