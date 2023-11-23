@@ -121,7 +121,7 @@ const colorsParam = (params.get('colors') || '').trim() || DEFAULT_COLORS;
 const colorSpaceParam = (params.get('colorspace') || '').trim() || DEFAULT_COLORSPACE;
 
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
-let animationFPS = +params.get('fps', DEFAULT_FPS);
+let animationFPS = parseFloat(params.get('fps'));
 
 if (!isFinite(animationFPS) || animationFPS < 0) {
     animationFPS = DEFAULT_FPS;
@@ -1135,8 +1135,12 @@ window.onkeydown = function (event) {
                         threshold += 100;
                     } else if (threshold >= 10) {
                         threshold += 10;
-                    } else {
+                    } else if (threshold >= 2) {
                         threshold += 1;
+                    } else if (threshold >= 2) {
+                        threshold = (((threshold * 10)|0) + 1) / 10;
+                    } else {
+                        threshold = (((threshold * 100)|0) + 1) / 100;
                     }
                     showMessage(`increased threshold to ${threshold}`);
                     updateShader();
@@ -1151,15 +1155,19 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
-                if (threshold > 1) {
+                if (threshold > 0.01) {
                     if (threshold > 1000) {
                         threshold -= 1000;
                     } else if (threshold > 100) {
                         threshold -= 100;
                     } else if (threshold > 10) {
                         threshold -= 10;
-                    } else {
+                    } else if (threshold > 2) {
                         threshold -= 1;
+                    } else if (threshold > 1) {
+                        threshold = (((threshold * 10)|0) - 1) / 10;
+                    } else {
+                        threshold = (((threshold * 100)|0) - 1) / 100;
                     }
                     showMessage(`decreased threshold to ${threshold}`);
                     updateShader();
