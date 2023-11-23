@@ -100,6 +100,11 @@ function debounce(func, delay) {
     };
 }
 
+const FRACTAL_NAMES = {
+    julia: 'Julia',
+    mandelbrot: 'Mandelbrot',
+};
+
 const params = new URLSearchParams(location.search);
 
 const INPUT_THROTTLE_MS = 250;
@@ -1352,6 +1357,7 @@ window.onkeydown = function (event) {
                     break;
                 }
                 fractal = 'mandelbrot';
+                document.title = FRACTAL_NAMES[fractal];
                 updateShader();
                 redraw();
                 setUrlParams();
@@ -1364,6 +1370,7 @@ window.onkeydown = function (event) {
                     break;
                 }
                 fractal = 'julia';
+                document.title = FRACTAL_NAMES[fractal];
                 updateShader();
                 redraw();
                 setUrlParams();
@@ -1552,6 +1559,8 @@ function createShader(gl, shaderType, sourceCode) {
 }
 
 function setup() {
+    document.title = FRACTAL_NAMES[fractal] || FRACTAL_NAMES.mandelbrot;
+
     gl = canvas.getContext("webgl2");
     if (!gl) {
         throw new TypeError("WebGL2 not supported!");
