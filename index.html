@@ -31,12 +31,14 @@
 <ol id="messages" class="message"></ol>
 <div id="help" class="message hidden"
   onmousedown="event.stopPropagation();"
-  ontouchstart="event.stopPropagation();"
+  ontouchmove="event.stopPropagation();"
+  ontouchend="event.stopPropagation();"
+  ontouchcancel="event.stopPropagation();"
   onwheel="event.stopPropagation();"
   onclick="event.stopPropagation();"
   ondblclick="event.stopPropagation();"
   onkeydown="
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && !(event.altKey || event.metaKey || event.shiftKey || event.ctrlKey)) {
       this.classList.add('hidden');
     }
     event.stopPropagation();
@@ -214,7 +216,7 @@
       <!-- up &#x1F839; -->
       <!-- down &#x1F83B; -->
       <tr>
-        <td class="hotkey"><kbd>H</kbd></td>
+        <td class="hotkey"><kbd>H</kbd>, <kbd>Tripple Tap</kbd></td>
         <td>Toggle this hotkeys and settings menu</td>
       </tr>
       <tr>

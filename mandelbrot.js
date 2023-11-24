@@ -1144,22 +1144,49 @@ function refreshActviveCenter() {
     activeCenter.size = maxSize;
 }
 
-let singleTouchTimestamp = 0;
+let singleTouchTimestamp1 = 0;
+let singleTouchTimestamp2 = 0;
+let doubleTapTimeout = null;
 
 /**
  * @param {TouchEvent} event 
  */
 window.addEventListener('touchstart', function (event) {
-    event.preventDefault();
+    const isHelp = event.target === helpEl || (
+        helpEl.compareDocumentPosition(event.target) & Node.DOCUMENT_POSITION_CONTAINED_BY
+    ) !== 0;
+
+    //showMessage(`isHelp: ${isHelp}, ${event.target.nodeName} ${helpEl.compareDocumentPosition(event.target)}`, MSG_LEVEL_INFO);
+
+    if (!isHelp) {
+        event.preventDefault();
+    }
+
     if (grabbing || animating) return;
 
     if (event.touches.length === 1) {
         const now = Date.now();
-        const dt = now - singleTouchTimestamp;
-        if (dt <= 250) {
-            toggleFullscreen();
+        if ((now - singleTouchTimestamp1) <= 500) {
+            if (doubleTapTimeout !== null) {
+                this.clearTimeout(doubleTapTimeout);
+                doubleTapTimeout = null;
+            }
+            toggleHelp();
+        } else if ((now - singleTouchTimestamp2) <= 250) {
+            if (doubleTapTimeout === null) {
+                doubleTapTimeout = setTimeout(() => {
+                    doubleTapTimeout = null;
+                    toggleFullscreen();
+                }, 251);
+            }
         }
-        singleTouchTimestamp = now;
+
+        singleTouchTimestamp1 = singleTouchTimestamp2;
+        singleTouchTimestamp2 = now;
+    }
+
+    if (isHelp) {
+        return;
     }
 
     touching = true;
@@ -1245,7 +1272,6 @@ window.addEventListener('touchend', handleTouchEnd, { passive: false });
 window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
 /**
- * 
  * @param {KeyboardEvent} event 
  */
 window.onkeydown = function (event) {
@@ -1283,15 +1309,7 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
                 }
-                if (helpEl.classList.contains('hidden')) {
-                    document.getElementById('fractal-input').value = fractal;
-                    document.getElementById('iterations-input').value = iterations;
-                    document.getElementById('threshold-input').value = threshold;
-                    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
-                    helpEl.classList.remove('hidden');
-                } else {
-                    helpEl.classList.add('hidden');
-                }
+                toggleHelp();
                 event.preventDefault();
                 break;
 
@@ -1800,6 +1818,22 @@ window.addEventListener('wheel', function (event) {
     debouncedSetUrlParams();
     redraw();
 }, { passive: false });
+
+function toggleHelp() {
+    if (helpEl.classList.contains('hidden')) {
+        showHelp();
+    } else {
+        helpEl.classList.add('hidden');
+    }
+}
+
+function showHelp() {
+    document.getElementById('fractal-input').value = fractal;
+    document.getElementById('iterations-input').value = iterations;
+    document.getElementById('threshold-input').value = threshold;
+    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
+    helpEl.classList.remove('hidden');
+}
 
 function toggleColorSpace() {
     if (gl.drawingBufferColorSpace === 'srgb') {
