@@ -21,6 +21,7 @@
 <meta property="og:image:height" content="540"/>
 
 <meta name="theme-color" content="#0201f7" />
+<meta name="color-scheme" content="dark" />
 
 <link rel="stylesheet" href="style.css" />
 </head>
@@ -92,6 +93,17 @@
           </td>
         </tr>
         <tr>
+          <td><label for="smooth-input">Color Smoothing</label></td>
+          <td>
+            <input type="checkbox" value="true" checkd id="smooth-input" onchange="
+                smooth = this.checked;
+                updateShader();
+                redraw();
+                setUrlParams();
+              " />
+          </td>
+        </tr>
+        <tr>
           <td><label for="colorspace-input">Color-Space</label></td>
           <td>
             <span class="select-wrapper">
@@ -137,12 +149,18 @@
                   <option value="grayscaleBB">Black Background</option>
                   <option value="grayscaleWB">White Background</option>
                 </optgroup>
-                <optgroup label="Horizon" title="These are slow.">
+                <optgroup label="Horizon">
                   <option value="horizonS">Horizon (sRGB)</option>
                   <option value="horizonC">Horizon (color corrected)</option>
                   <option value="horizonL">Horizon (wrong color space)</option>
                 </optgroup>
                 <option value="sepia">Sepia</option>
+                <option value="fire">Fire</option>
+                <optgroup label="GIMP">
+                  <option value="gpsFireIncandescent">GPS Fire Incandescent</option>
+                  <option value="gimpHorizon1">GIMP Horizon 1</option>
+                  <option value="gimpHorizon2">GIMP Horizon 2</option>
+                </optgroup>
                 <optgroup label="Pride">
                   <optgroup label="Flags">
                     <option value="gay">Gay Pride</option>
@@ -280,6 +298,10 @@
       <tr>
         <td class="hotkey"><kbd>Shift</kbd>+<kbd>C</kbd></td>
         <td>Cycle through color presets backward</td>
+      </tr>
+      <tr>
+        <td class="hotkey"><kbd>G</kbd></td>
+        <td>Toggle color smoothing</td>
       </tr>
       <tr>
         <td class="hotkey"><kbd>P</kbd></td>

@@ -114,6 +114,7 @@ const DEFAULT_THRESHOLD = 4.0;
 const DEFAULT_FPS = 12;
 const DEFAULT_COLORS = 'BGR';
 const DEFAULT_COLORSPACE = 'srgb';
+const DEFAULT_SMOOTH = true;
 
 const MAX_ITERATIONS = 10000;
 const MAX_THRESHOLD = 10000;
@@ -125,6 +126,7 @@ const animationParam = params.get('animation');
 const colorsParam = (params.get('colors') || '').trim() || DEFAULT_COLORS;
 const colorSpaceParam = (params.get('colorspace') || '').trim() || DEFAULT_COLORSPACE;
 
+let smooth = (params.get('smooth') || '').trim().toLowerCase() !== 'false';
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let animationFPS = parseFloat(params.get('fps'));
 
@@ -135,6 +137,7 @@ if (!isFinite(animationFPS) || animationFPS < 0) {
 }
 
 document.getElementById('fps-input').value = animationFPS;
+document.getElementById('smooth-input').checked = smooth;
 
 let iterations = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, MAX_ITERATIONS), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 let threshold = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, MAX_THRESHOLD), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
@@ -509,9 +512,163 @@ fragColor.x = pow(fragColor.x, 1.0/2.2);
 fragColor.y = pow(fragColor.y, 1.0/2.2);
 fragColor.z = pow(fragColor.z, 1.0/2.2);
 fragColor.w = 1.0;`,
+
+    gpsFireIncandescent: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 0.382759) {
+    t = v * 2.612610023539616;
+    fragColor.xyz = mix(vec3(0.466667, 0.011765, 0.003922), vec3(0.5537209556597148, 0.08712517533638242, 0.0026225438196829567), t);
+} else if (v < 0.572414) {
+    t = (v - 0.382759) * 5.272732066120061;
+    fragColor.xyz = mix(vec3(0.5537209556597148, 0.08712517533638242, 0.0026225438196829567), vec3(0.729412, 0.239216, 0.0), t);
+} else if (v < 0.852874) {
+    t = (v - 0.572414) * 3.5655708478927473;
+    fragColor.xyz = mix(vec3(0.729412, 0.239216, 0.0), vec3(0.7675229508909834, 0.29665862326574494, 0.013256044155533817), t);
+} else if (v < 0.898851) {
+    t = (v - 0.852874) * 21.75000543750139;
+    fragColor.xyz = mix(vec3(0.7675229508909834, 0.29665862326574494, 0.013256044155533817), vec3(1.0, 0.647059, 0.094118), t);
+} else if (v < 0.95977) {
+    t = (v - 0.898851) * 16.41523990873125;
+    fragColor.xyz = mix(vec3(1.0, 0.647059, 0.094118), vec3(1.0, 0.7702773701272381, 0.39358528519313074), t);
+} else {
+    t = (v - 0.95977) * 24.857071836937617;
+    fragColor.xyz = mix(vec3(1.0, 0.7702773701272381, 0.39358528519313074), vec3(1.0, 0.956863, 0.847059), t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
+    gimpHorizon1: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 0.348915) {
+    t = v * 2.8660275425246837;
+    fragColor.xyz = mix(vec3(0.047059, 0.360784, 0.572549), vec3(0.3756587895030364, 0.5757939814666683, 0.7145366910792146), t);
+} else if (v < 0.532554) {
+    t = (v - 0.348915) * 5.445466376967856;
+    fragColor.xyz = mix(vec3(0.3756587895030364, 0.5757939814666683, 0.7145366910792146), vec3(1.0, 0.984314, 0.984314), t);
+} else if (v < 0.542571) {
+    t = (v - 0.532554) * 99.83028850953326;
+    fragColor.xyz = mix(vec3(1.0, 0.984314, 0.984314), vec3(0.5764708571428592, 0.49131685714285944, 0.4420168571428597), t);
+} else if (v < 0.555927) {
+    t = (v - 0.542571) * 74.87271638215077;
+    fragColor.xyz = mix(vec3(0.5764708571428592, 0.49131685714285944, 0.4420168571428597), vec3(0.258824, 0.121569, 0.035294), t);
+} else if (v < 0.582638) {
+    t = (v - 0.555927) * 37.43775972445803;
+    fragColor.xyz = mix(vec3(0.258824, 0.121569, 0.035294), vec3(0.651212062225824, 0.4869675976286534, 0.3072671206286005), t);
+} else if (v < 0.612688) {
+    t = (v - 0.582638) * 33.277870216306134;
+    fragColor.xyz = mix(vec3(0.651212062225824, 0.4869675976286534, 0.3072671206286005), vec3(1.0, 0.811765, 0.54902), t);
+} else if (v < 0.778798) {
+    t = (v - 0.612688) * 6.020107157907412;
+    fragColor.xyz = mix(vec3(1.0, 0.811765, 0.54902), vec3(0.6712711921897491, 0.483035687214469, 0.3014831376181238), t);
+} else if (v < 0.948247) {
+    t = (v - 0.778798) * 5.90148068150299;
+    fragColor.xyz = mix(vec3(0.6712711921897491, 0.483035687214469, 0.3014831376181238), vec3(0.34902, 0.160784, 0.058824), t);
+} else {
+    t = (v - 0.948247) * 19.322551349680193;
+    fragColor.xyz = mix(vec3(0.34902, 0.160784, 0.058824), vec3(1.0, 0.556863, 0.219608), t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
+    gimpHorizon2: `\
+v *= 0.05;
+v = mod(v, 1.0);
+float t;
+if (v < 0.290484) {
+    t = v * 3.4425303975434103;
+    fragColor.xyz = mix(vec3(0.047059, 0.360784, 0.572549), vec3(0.10119100969863715, 0.40569505983405696, 0.6086092072997721), t);
+} else if (v < 0.348915) {
+    t = (v - 0.290484) * 17.114203077133727;
+    fragColor.xyz = mix(vec3(0.10119100969863715, 0.40569505983405696, 0.6086092072997721), vec3(0.370303, 0.628966, 0.787879), t);
+} else if (v < 0.470785) {
+    t = (v - 0.348915) * 8.20546483958316;
+    fragColor.xyz = mix(vec3(0.370303, 0.628966, 0.787879), vec3(0.5821085205756946, 0.7484912131192176, 0.8539520755177277), t);
+} else if (v < 0.532554) {
+    t = (v - 0.470785) * 16.189350645145634;
+    fragColor.xyz = mix(vec3(0.5821085205756946, 0.7484912131192176, 0.8539520755177277), vec3(1.0, 0.984314, 0.984314), t);
+} else if (v < 0.542571) {
+    t = (v - 0.532554) * 99.83028850953326;
+    fragColor.xyz = mix(vec3(1.0, 0.984314, 0.984314), vec3(0.450884571428574, 0.4978374285714309, 0.5733642857142877), t);
+} else if (v < 0.555927) {
+    t = (v - 0.542571) * 74.87271638215077;
+    fragColor.xyz = mix(vec3(0.450884571428574, 0.4978374285714309, 0.5733642857142877), vec3(0.039048, 0.13298, 0.265152), t);
+} else if (v < 0.582638) {
+    t = (v - 0.555927) * 37.43775972445803;
+    fragColor.xyz = mix(vec3(0.039048, 0.13298, 0.265152), vec3(0.2949936774898257, 0.49858665685946324, 0.6277192979686755), t);
+} else if (v < 0.612688) {
+    t = (v - 0.582638) * 33.277870216306134;
+    fragColor.xyz = mix(vec3(0.2949936774898257, 0.49858665685946324, 0.6277192979686755), vec3(0.5225, 0.823569, 0.95), t);
+} else if (v < 0.754591) {
+    t = (v - 0.612688) * 7.0470673629169225;
+    fragColor.xyz = mix(vec3(0.5225, 0.823569, 0.95), vec3(0.24687488381459904, 0.3847763495166687, 0.5064653302763663), t);
+} else {
+    t = (v - 0.754591) * 4.074830181452188;
+    fragColor.xyz = mix(vec3(0.24687488381459904, 0.3847763495166687, 0.5064653302763663), vec3(0.0875, 0.131053, 0.25), t);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
+    fire: `\
+v *= 0.03;
+v = mod(v, 1.0);
+float t;
+if (v < 0.010217113665389528) {
+    t = v * 97.875;
+    fragColor.xyz = mix(vec3(0.0, 0.0, 0.0), vec3(0.4793278857142856, 0.0, 0.0), t);
+} else if (v < 0.02979991485738612) {
+    t = (v - 0.010217113665389528) * 51.06521739130435;
+    fragColor.xyz = mix(vec3(0.4793278857142856, 0.0, 0.0), vec3(0.729412, 0.0, 0.0), t);
+} else if (v < 0.31417624521072796) {
+    t = (v - 0.02979991485738612) * 3.5164670658682637;
+    fragColor.xyz = mix(vec3(0.729412, 0.0, 0.0), vec3(0.8080544652166989, 0.1346120868219872, 0.014904382064946313), t);
+} else if (v < 0.4306887532693984) {
+    t = (v - 0.31417624521072796) * 8.582769495412844;
+    fragColor.xyz = mix(vec3(0.8080544652166989, 0.1346120868219872, 0.014904382064946313), vec3(1.0, 0.46316471957765515, 0.05128205128205132), t);
+} else if (v < 0.5902353966870096) {
+    t = (v - 0.4306887532693984) * 6.267759562841528;
+    fragColor.xyz = mix(vec3(1.0, 0.4627450980392157, 0.050980392156862744), vec3(1.0, 0.6454532714469555, 0.04796519505460273), t);
+} else if (v < 0.6822144725370531) {
+    t = (v - 0.5902353966870096) * 10.872037914691953;
+    fragColor.xyz = mix(vec3(1.0, 0.6454532714469555, 0.04796519505460273), vec3(1.0, 0.9623783494907132, 0.042735042735042694), t);
+} else if (v < 0.7449869224062773) {
+    t = (v - 0.6822144725370531) * 15.930555555555534;
+    fragColor.xyz = mix(vec3(1.0, 0.9607843137254902, 0.043137254901960784), vec3(1.0, 0.9785392793148799, 0.5153121113492629), t);
+} else if (v < 0.8478639930252834) {
+    t = (v - 0.7449869224062773) * 9.72033898305085;
+    fragColor.xyz = mix(vec3(1.0, 0.9785392793148799, 0.5153121113492629), vec3(1.0, 0.9893728176406091, 0.8034188034188035), t);
+} else if (v < 0.8727114210985178) {
+    t = (v - 0.8478639930252834) * 40.2456140350878;
+    fragColor.xyz = mix(vec3(1.0, 0.9882352941176471, 0.803921568627451), vec3(1.0, 0.8925077911225806, 0.6667597732912364), t);
+} else if (v < 0.8782460621541082) {
+    t = (v - 0.8727114210985178) * 180.68019045064187;
+    fragColor.xyz = mix(vec3(1.0, 0.8925077911225806, 0.6667597732912364), vec3(1.0, 0.4627450980392157, 0.050980392156862786), t);
+} else if (v < 0.8837803320561941) {
+    t = (v - 0.8782460621541082) * 180.69230769230938;
+    fragColor.xyz = mix(vec3(1.0, 0.4627450980392157, 0.050980392156862744), vec3(0.48265816433877357, 0.22334769957637365, 0.024606102495702182), t);
+} else if (v < 0.8897122929380994) {
+    t = (v - 0.8837803320561941) * 168.5783200375405;
+    fragColor.xyz = mix(vec3(0.48265816433877357, 0.22334769957637365, 0.024606102495702182), vec3(0.0, 0.0, 0.0), t);
+} else {
+    fragColor.xyz = vec3(0.0, 0.0, 0.0);
+}
+fragColor.x = pow(fragColor.x, 1.0/2.2);
+fragColor.y = pow(fragColor.y, 1.0/2.2);
+fragColor.z = pow(fragColor.z, 1.0/2.2);
+fragColor.w = 1.0;`,
+
 }
 
-function getMandelbrotCode(iterations, threshold, colorCode) {
+function getMandelbrotCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -538,7 +695,10 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float a = z.x*z.x + z.y*z.y;
         if (a >= ${toFloatStr(threshold * threshold)}) {
-            float v = (float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))});
+            float v = ${smooth ?
+                `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
+                'float(i + 1)'
+            };
 
             ${colorCode}
             return;
@@ -551,7 +711,7 @@ void main() {
 }`;
 }
 
-function getJuliaCode(iterations, threshold, colorCode) {
+function getJuliaCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -579,7 +739,10 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float a = z.x*z.x + z.y*z.y;
         if (a >= ${toFloatStr(threshold * threshold)}) {
-            float v = (float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))});
+            float v = ${smooth ?
+                `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
+                'float(i + 1)'
+            };
 
             ${colorCode}
             return;
@@ -828,6 +991,9 @@ function setUrlParams() {
     const colorSpace = gl.drawingBufferColorSpace;
     if (colorSpace !== DEFAULT_COLORSPACE) {
         params.push(`colorspace=${colorSpace}`);
+    }
+    if (smooth !== DEFAULT_SMOOTH) {
+        params.push(`smooth=${smooth}`);
     }
     const query = params.join('&');
     const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;
@@ -1254,6 +1420,7 @@ window.onkeydown = function (event) {
                 }
                 event.preventDefault();
                 break;
+
             case 'a':
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
@@ -1474,6 +1641,19 @@ window.onkeydown = function (event) {
                 event.preventDefault();
                 break;
 
+            case 'g':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
+                smooth = !smooth;
+                updateShader();
+                redraw();
+                setUrlParams();
+                showMessage(smooth ? 'turned smoothing on' : 'turned smoothing off', MSG_LEVEL_INFO);
+                document.getElementById('smooth-input').checked = smooth;
+                event.preventDefault();
+                break;
+
             default:
                 // console.log(event);
                 break;
@@ -1608,8 +1788,8 @@ function setup() {
 
     const program = gl.createProgram();
     let fragmentCode = fractal === 'julia' ?
-        getJuliaCode(iterations, threshold, colorCode) :
-        getMandelbrotCode(iterations, threshold, colorCode);
+        getJuliaCode(iterations, threshold, colorCode, smooth) :
+        getMandelbrotCode(iterations, threshold, colorCode, smooth);
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_CODE);
     let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
@@ -1622,8 +1802,8 @@ function setup() {
         gl.deleteShader(fragmentShader);
 
         fragmentCode = fractal === 'julia' ?
-            getJuliaCode(iterations, threshold, colorCode) :
-            getMandelbrotCode(iterations, threshold, colorCode);
+            getJuliaCode(iterations, threshold, colorCode, smooth) :
+            getMandelbrotCode(iterations, threshold, colorCode, smooth);
 
         fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
         gl.attachShader(program, fragmentShader);
