@@ -103,6 +103,7 @@ function debounce(func, delay) {
 const FRACTAL_NAMES = {
     julia: 'Julia',
     mandelbrot: 'Mandelbrot',
+    phoenix: 'Phoenix',
 };
 
 const params = new URLSearchParams(location.search);
@@ -759,6 +760,56 @@ void main() {
 }`;
 }
 
+// http://usefuljs.net/fractals/docs/mandelvariants.html
+function getPhoenixCode(iterations, threshold, colorCode, smooth) {
+    return `\
+#version 300 es
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
+
+uniform vec2 canvasSize;
+uniform vec3 viewPort;
+uniform vec2 c;
+out vec4 fragColor;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
+    float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
+    vec2 z0 = vec2(0.0, 0.0);
+    vec2 z = vec2(y, x);
+
+    for (int i = 0; i < ${iterations}; ++ i) {
+        float zxzx = z.x*z.x;
+        float zyzy = z.y*z.y;
+        float a = zxzx + zyzy; // XXX
+        if (a >= ${toFloatStr(threshold * threshold)}) {
+            float v = ${smooth ?
+                `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
+                'float(i + 1)'
+            };
+
+            ${colorCode}
+            return;
+        }
+        float zx = zxzx - zyzy + c.x * z0.x - c.y * z0.y;
+        float zy = 2.0 * z.x*z.y + c.y * z0.y + z0.x * c.y;
+        z0 = z;
+        z.x = zx;
+        z.y = zy;
+    }
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}`;
+}
+
 let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
 let colorCode = COLOR_CODES[colors] || COLOR_CODES[DEFAULT_COLORS];
 document.getElementById('color-code-preset').value = colors || DEFAULT_COLORS;
@@ -939,6 +990,8 @@ const mousePos = {
     y: 0,
 };
 
+const DEFAULT_PHOENIX_X = 0;
+const DEFAULT_PHOENIX_Z = 2.5;
 const DEFAULT_JULIA_X = 0;
 const DEFAULT_JULIA_Z = 2;
 const DEFAULT_MANDELBROT_X = -0.5;
@@ -946,6 +999,8 @@ const DEFAULT_MANDELBROT_Z = 2.5;
 const DEFAULT_Y = 0;
 const DEFAULT_CR = -0.744;
 const DEFAULT_CI = 0.148;
+const DEFAULT_PHOENIX_CR = 0.5667;
+const DEFAULT_PHOENIX_CI = -0.5;
 
 const viewPort = {
     x: 0,
@@ -961,14 +1016,21 @@ function getUrlHash() {
     if (fractal === 'julia') {
         viewPort.x = nanColesce(+x, DEFAULT_JULIA_X);
         viewPort.z = nanColesce(+z, DEFAULT_JULIA_Z);
+        viewPort.cr = nanColesce(+cr, DEFAULT_CR);
+        viewPort.ci = nanColesce(+ci, DEFAULT_CI);
+    } else if (fractal === 'phoenix') {
+        viewPort.x = nanColesce(+x, DEFAULT_PHOENIX_X);
+        viewPort.z = nanColesce(+z, DEFAULT_PHOENIX_Z);
+        viewPort.cr = nanColesce(+cr, DEFAULT_PHOENIX_CR);
+        viewPort.ci = nanColesce(+ci, DEFAULT_PHOENIX_CI);
     } else {
         viewPort.x = nanColesce(+x, DEFAULT_MANDELBROT_X);
         viewPort.z = nanColesce(+z, DEFAULT_MANDELBROT_Z);
+        viewPort.cr = nanColesce(+cr, DEFAULT_CR);
+        viewPort.ci = nanColesce(+ci, DEFAULT_CI);
     }
 
-    viewPort.y  = nanColesce(+y, DEFAULT_Y);
-    viewPort.cr = nanColesce(+cr, DEFAULT_CR);
-    viewPort.ci = nanColesce(+ci, DEFAULT_CI);
+    viewPort.y = nanColesce(+y, DEFAULT_Y);
 }
 
 function setUrlParams() {
@@ -1098,7 +1160,7 @@ window.onmousemove = function (event) {
             dx *= 0.1;
             dy *= 0.1;
         }
-        if (event.ctrlKey && fractal === 'julia') {
+        if (event.ctrlKey && (fractal === 'julia' || fractal === 'phoenix')) {
             viewPort.cr += dx / canvas.height;
             viewPort.ci += dy / canvas.height;
         } else {
@@ -1197,7 +1259,7 @@ window.addEventListener('touchmove', function (event) {
     const dx = x2 - x1;
     const dy = y2 - y1;
 
-    if (touchCount2 > 2 && fractal === 'julia') {
+    if (touchCount2 > 2 && (fractal === 'julia' || fractal === 'phoenix')) {
         viewPort.cr += dx * 0.1 / canvas.height;
         viewPort.ci += dy * 0.1 / canvas.height;
     } else {
@@ -1791,9 +1853,11 @@ function setup() {
     // gl.enable(gl.DITHER);
 
     const program = gl.createProgram();
-    let fragmentCode = fractal === 'julia' ?
-        getJuliaCode(iterations, threshold, colorCode, smooth) :
-        getMandelbrotCode(iterations, threshold, colorCode, smooth);
+    let fragmentCode = (
+        fractal === 'julia'   ? getJuliaCode(iterations, threshold, colorCode, smooth) :
+        fractal === 'phoenix' ? getPhoenixCode(iterations, threshold, colorCode, smooth) :
+        getMandelbrotCode(iterations, threshold, colorCode, smooth)
+    );
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_CODE);
     let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
@@ -1805,9 +1869,11 @@ function setup() {
         gl.detachShader(program, fragmentShader);
         gl.deleteShader(fragmentShader);
 
-        fragmentCode = fractal === 'julia' ?
-            getJuliaCode(iterations, threshold, colorCode, smooth) :
-            getMandelbrotCode(iterations, threshold, colorCode, smooth);
+        fragmentCode = (
+            fractal === 'julia'   ? getJuliaCode(iterations, threshold, colorCode, smooth) :
+            fractal === 'phoenix' ? getPhoenixCode(iterations, threshold, colorCode, smooth) :
+            getMandelbrotCode(iterations, threshold, colorCode, smooth)
+        );
 
         fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentCode);
         gl.attachShader(program, fragmentShader);
