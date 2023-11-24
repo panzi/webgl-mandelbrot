@@ -1628,14 +1628,21 @@ window.onkeydown = function (event) {
                 if (fractal === 'julia') {
                     viewPort.x = DEFAULT_JULIA_X;
                     viewPort.z = DEFAULT_JULIA_Z;
+                    viewPort.cr = DEFAULT_CR;
+                    viewPort.ci = DEFAULT_CI;
+                } else if (fractal === 'phoenix') {
+                    viewPort.x = DEFAULT_PHOENIX_X;
+                    viewPort.z = DEFAULT_PHOENIX_Z;
+                    viewPort.cr = DEFAULT_PHOENIX_CR;
+                    viewPort.ci = DEFAULT_PHOENIX_CI;
                 } else {
                     viewPort.x = DEFAULT_MANDELBROT_X;
                     viewPort.z = DEFAULT_MANDELBROT_Z;
+                    viewPort.cr = DEFAULT_CR;
+                    viewPort.ci = DEFAULT_CI;
                 }
 
-                viewPort.y  = DEFAULT_Y;
-                viewPort.cr = DEFAULT_CR;
-                viewPort.ci = DEFAULT_CI;
+                viewPort.y = DEFAULT_Y;
 
                 redraw();
                 setUrlParams();
