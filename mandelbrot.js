@@ -693,7 +693,9 @@ void main() {
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
 
     for (int i = 0; i < ${iterations}; ++ i) {
-        float a = z.x*z.x + z.y*z.y;
+        float zxzx = z.x*z.x;
+        float zyzy = z.y*z.y;
+        float a = zxzx + zyzy;
         if (a >= ${toFloatStr(threshold * threshold)}) {
             float v = ${smooth ?
                 `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
@@ -703,7 +705,7 @@ void main() {
             ${colorCode}
             return;
         }
-        float zx = z.x*z.x - z.y*z.y + x;
+        float zx = zxzx - zyzy + x;
         z.y = 2.0 * z.x*z.y + y;
         z.x = zx;
     }
@@ -737,7 +739,9 @@ void main() {
     vec2 z = vec2(x, y);
 
     for (int i = 0; i < ${iterations}; ++ i) {
-        float a = z.x*z.x + z.y*z.y;
+        float zxzx = z.x*z.x;
+        float zyzy = z.y*z.y;
+        float a = zxzx + zyzy;
         if (a >= ${toFloatStr(threshold * threshold)}) {
             float v = ${smooth ?
                 `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
@@ -747,7 +751,7 @@ void main() {
             ${colorCode}
             return;
         }
-        float zx = z.x*z.x - z.y*z.y + c.x;
+        float zx = zxzx - zyzy + c.x;
         z.y = 2.0 * z.x*z.y + c.y;
         z.x = zx;
     }

@@ -110,6 +110,7 @@ float t;
 
         if color1 == color2:
             # solid color
+
             if index + 1 >= segment_count:
                 code.append('{\n')
             else:
