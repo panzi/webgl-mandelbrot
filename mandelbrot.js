@@ -1553,7 +1553,7 @@ window.onkeydown = function (event) {
                 break;
 
             case 'D':
-                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
                 if (animation && animation.length > 0) {
@@ -1617,6 +1617,28 @@ window.onkeydown = function (event) {
                 } else {
                     stopAnimation();
                 }
+                event.preventDefault();
+                break;
+
+            case 'Home':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
+
+                if (fractal === 'julia') {
+                    viewPort.x = DEFAULT_JULIA_X;
+                    viewPort.z = DEFAULT_JULIA_Z;
+                } else {
+                    viewPort.x = DEFAULT_MANDELBROT_X;
+                    viewPort.z = DEFAULT_MANDELBROT_Z;
+                }
+
+                viewPort.y  = DEFAULT_Y;
+                viewPort.cr = DEFAULT_CR;
+                viewPort.ci = DEFAULT_CI;
+
+                redraw();
+                setUrlParams();
                 event.preventDefault();
                 break;
 
