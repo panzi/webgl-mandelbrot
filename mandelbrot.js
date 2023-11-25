@@ -883,10 +883,10 @@ function saveScreenshotBlob() {
                     document.body.appendChild(link);
                     link.click();
                     setTimeout(() => {
+                        resolve();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
                     }, 0);
-                    resolve();
                 } catch (error) {
                     reject(error);
                 }
