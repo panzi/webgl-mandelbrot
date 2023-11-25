@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#0201f7" />
 <meta name="color-scheme" content="dark" />
 
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?_=2" />
 </head>
 <body ondragstart="return false;" ondrop="return false;">
 <canvas id="canvas"></canvas>
@@ -31,12 +31,14 @@
 <ol id="messages" class="message"></ol>
 <div id="help" class="message hidden"
   onmousedown="event.stopPropagation();"
-  ontouchstart="event.stopPropagation();"
+  ontouchmove="event.stopPropagation();"
+  ontouchend="event.stopPropagation();"
+  ontouchcancel="event.stopPropagation();"
   onwheel="event.stopPropagation();"
   onclick="event.stopPropagation();"
   ondblclick="event.stopPropagation();"
   onkeydown="
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && !(event.altKey || event.metaKey || event.shiftKey || event.ctrlKey)) {
       this.classList.add('hidden');
     }
     event.stopPropagation();
@@ -208,15 +210,11 @@
   </form>
 
   <h3>Hotkeys</h3>
-  <table>
+  <table class="breakable-table">
     <tbody>
-      <!-- left &#x1F838; -->
-      <!-- right &#x1F83A; -->
-      <!-- up &#x1F839; -->
-      <!-- down &#x1F83B; -->
       <tr>
-        <td class="hotkey"><kbd>H</kbd></td>
-        <td>Toggle help messge</td>
+        <td class="hotkey"><kbd>H</kbd>, <kbd>Tripple Tap</kbd></td>
+        <td>Toggle this hotkeys and settings menu</td>
       </tr>
       <tr>
         <td class="hotkey"><kbd>M</kbd></td>
@@ -227,33 +225,29 @@
         <td>Show Julia set</td>
       </tr>
       <tr>
-        <td class="hotkey"><kbd>+</kbd>, <kbd>Wheel &#x1F839;</kbd></td>
-        <td>Zoom In</td>
+        <td class="hotkey">[<kbd>Shift</kbd>+]<kbd>+</kbd>/<kbd>Wheel &uarr;</kbd></td>
+        <td>Zoom In. <kbd>Shift</kbd> for smaller steps.</td>
       </tr>
       <tr>
-        <td class="hotkey"><kbd>-</kbd>, <kbd>Wheel &#x1F83B;</kbd></td>
-        <td>Zoom Out</td>
-      </tr>
-      <tr>
-        <td class="hotkey"><kbd>&#x1F838;</kbd>, <kbd>&#x1F839;</kbd>, <kbd>&#x1F83B;</kbd>, <kbd>&#x1F838;</kbd>, <kbd>Panning</kbd></td>
-        <td>Navigate</td>
+        <td class="hotkey">[<kbd>Shift</kbd>+]<kbd>-</kbd>/<kbd>Wheel &darr;</kbd></td>
+        <td>Zoom Out. <kbd>Shift</kbd> for smaller steps.</td>
       </tr>
       <tr>
         <td class="hotkey">
-          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F838;</kbd>,<br/>
-          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F83A;</kbd>,<br/>
-          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F839;</kbd>,<br/>
-          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&#x1F83B;</kbd>,<br/>
-          <kbd>Ctrl</kbd>/<kbd>Alt</kbd>+<kbd>Wheel &#x1F839;</kbd>,<br/>
-          <kbd>Ctrl</kbd>/<kbd>Alt</kbd>+<kbd>Wheel &#x1F83B;</kbd>,<br/>
+          [<kbd>Shift</kbd>+]<kbd>&larr;</kbd>/<kbd>&uarr;</kbd>/<kbd>&darr;</kbd>/<kbd>&rarr;</kbd>,<br/>
+          [<kbd>Shift</kbd>+]<kbd>Panning</kbd>
+        </td>
+        <td>Move around. <kbd>Shift</kbd> to move by smaller steps.</td>
+      </tr>
+      <tr>
+        <td class="hotkey">
+          [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>&larr;</kbd>/<kbd>&uarr;</kbd>/<kbd>&darr;</kbd>/<kbd>&rarr;</kbd>,<br/>
           [<kbd>Shift</kbd>+]<kbd>Ctrl</kbd>+<kbd>Panning</kbd>,<br/>
           <kbd>&GreaterEqual; 3 Finger Panning</kbd>
         </td>
         <td>
           Navigate the complex parameter for the Julia set.
           <kbd>Shift</kbd> for smaller steps.
-          <kbd>Ctrl</kbd>/<kbd>&#x1F838;</kbd>/<kbd>&#x1F83A;</kbd> for the real component,
-          <kbd>Alt</kbd>/<kbd>&#x1F839;</kbd>/<kbd>&#x1F83B;</kbd> for the complex component.
         </td>
       </tr>
       <tr>
@@ -305,8 +299,11 @@
         <td>Toggle color smoothing</td>
       </tr>
       <tr>
-        <td class="hotkey"><kbd>Home</kbd></td>
-        <td>Reset parameters to fractal's default values</td>
+        <td class="hotkey">[<kbd>Shift</kbd>+]<kbd>Home</kbd></td>
+        <td>
+          Reset zoom and position.
+          Use <kbd>Shift</kbd> to also reset the complex parameter of the Julia set.
+        </td>
       </tr>
       <tr>
         <td class="hotkey"><kbd>P</kbd></td>

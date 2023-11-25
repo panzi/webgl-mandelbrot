@@ -169,6 +169,7 @@ let animation = animationParam ? animationParam.split(/\s+/).map(
 ) : null;
 
 const ZOOM_FACTOR = 1.25;
+const SMALL_ZOOM_FACTOR = 1.025;
 
 const VERTEX_CODE = `\
 #version 300 es
@@ -921,7 +922,7 @@ const debouncedSetThreshold = debounce(setThreshold, INPUT_THROTTLE_MS);
 function saveScreenshotBlob() {
     return new Promise((resolve, reject) => {
         try {
-            const filename = `${fractal}.png`;
+            const filename = `${FRACTAL_NAMES[fractal] || fractal}.png`;
             canvas.toBlob(blob => {
                 try {
                     const url = URL.createObjectURL(blob);
@@ -933,10 +934,10 @@ function saveScreenshotBlob() {
                     document.body.appendChild(link);
                     link.click();
                     setTimeout(() => {
+                        resolve();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
                     }, 0);
-                    resolve();
                 } catch (error) {
                     reject(error);
                 }
@@ -1205,22 +1206,47 @@ function refreshActviveCenter() {
     activeCenter.size = maxSize;
 }
 
-let singleTouchTimestamp = 0;
+let singleTouchTimestamp1 = 0;
+let singleTouchTimestamp2 = 0;
+let doubleTapTimeout = null;
 
 /**
  * @param {TouchEvent} event 
  */
 window.addEventListener('touchstart', function (event) {
-    event.preventDefault();
+    const isHelp = event.target === helpEl || (
+        helpEl.compareDocumentPosition(event.target) & Node.DOCUMENT_POSITION_CONTAINED_BY
+    ) !== 0;
+
+    if (!isHelp) {
+        event.preventDefault();
+    }
+
     if (grabbing || animating) return;
 
     if (event.touches.length === 1) {
         const now = Date.now();
-        const dt = now - singleTouchTimestamp;
-        if (dt <= 250) {
-            toggleFullscreen();
+        if ((now - singleTouchTimestamp1) <= 500) {
+            if (doubleTapTimeout !== null) {
+                this.clearTimeout(doubleTapTimeout);
+                doubleTapTimeout = null;
+            }
+            toggleHelp();
+        } else if ((now - singleTouchTimestamp2) <= 250) {
+            if (doubleTapTimeout === null) {
+                doubleTapTimeout = setTimeout(() => {
+                    doubleTapTimeout = null;
+                    toggleFullscreen();
+                }, 251);
+            }
         }
-        singleTouchTimestamp = now;
+
+        singleTouchTimestamp1 = singleTouchTimestamp2;
+        singleTouchTimestamp2 = now;
+    }
+
+    if (isHelp) {
+        return;
     }
 
     touching = true;
@@ -1306,21 +1332,26 @@ window.addEventListener('touchend', handleTouchEnd, { passive: false });
 window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
 /**
- * 
  * @param {KeyboardEvent} event 
  */
 window.onkeydown = function (event) {
     try {
         switch (event.key) {
             case '+':
-                viewPort.z /= ZOOM_FACTOR;
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
+                viewPort.z /= event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
                 debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
                 break;
 
             case '-':
-                viewPort.z *= ZOOM_FACTOR;
+                if (event.altKey || event.metaKey || event.ctrlKey) {
+                    break;
+                }
+                viewPort.z *= event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
                 debouncedSetUrlParams();
                 redraw();
                 event.preventDefault();
@@ -1338,15 +1369,7 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
                 }
-                if (helpEl.classList.contains('hidden')) {
-                    document.getElementById('fractal-input').value = fractal;
-                    document.getElementById('iterations-input').value = iterations;
-                    document.getElementById('threshold-input').value = threshold;
-                    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
-                    helpEl.classList.remove('hidden');
-                } else {
-                    helpEl.classList.add('hidden');
-                }
+                toggleHelp();
                 event.preventDefault();
                 break;
 
@@ -1437,9 +1460,9 @@ window.onkeydown = function (event) {
                     } else if (threshold > 2) {
                         threshold -= 1;
                     } else if (threshold > 1) {
-                        threshold = (Math.ceil(threshold * 10) - 1) / 10;
+                        threshold = (Math.floor(threshold * 10) - 1) / 10;
                     } else {
-                        threshold = (Math.ceil(threshold * 100) - 1) / 100;
+                        threshold = (Math.floor(threshold * 100) - 1) / 100;
                     }
                     showMessage(`decreased threshold to ${threshold}`);
                     updateShader();
@@ -1568,10 +1591,20 @@ window.onkeydown = function (event) {
                 break;
 
             case 'ArrowRight':
+                if (event.metaKey) {
+                    break;
+                }
+                if (event.altKey) {
+                    if (event.ctrlKey || event.shiftKey) {
+                        break;
+                    }
+                    // common browser hotkey: history back
+                    return;
+                }
                 if (event.ctrlKey) {
                     viewPort.cr += event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.x += 0.1 * viewPort.z;
+                    viewPort.x += (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1579,10 +1612,20 @@ window.onkeydown = function (event) {
                 break;
 
             case 'ArrowLeft':
+                if (event.metaKey) {
+                    break;
+                }
+                if (event.altKey) {
+                    if (event.ctrlKey || event.shiftKey) {
+                        break;
+                    }
+                    // common browser hotkey: history forward
+                    return;
+                }
                 if (event.ctrlKey) {
                     viewPort.cr -= event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.x -= 0.1 * viewPort.z;
+                    viewPort.x -= (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1590,10 +1633,13 @@ window.onkeydown = function (event) {
                 break;
 
             case 'ArrowUp':
+                if (event.altKey || event.metaKey) {
+                    break;
+                }
                 if (event.ctrlKey) {
                     viewPort.ci += event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.y += 0.1 * viewPort.z;
+                    viewPort.y += (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1601,10 +1647,13 @@ window.onkeydown = function (event) {
                 break;
 
             case 'ArrowDown':
+                if (event.altKey || event.metaKey) {
+                    break;
+                }
                 if (event.ctrlKey) {
                     viewPort.ci -= event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.y -= 0.1 * viewPort.z;
+                    viewPort.y -= (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1612,6 +1661,9 @@ window.onkeydown = function (event) {
                 break;
 
             case 'Escape':
+                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                    break;
+                }
                 if (!helpEl.classList.contains('hidden')) {
                     helpEl.classList.add('hidden');
                 } else {
@@ -1621,25 +1673,31 @@ window.onkeydown = function (event) {
                 break;
 
             case 'Home':
-                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
 
                 if (fractal === 'julia') {
                     viewPort.x = DEFAULT_JULIA_X;
                     viewPort.z = DEFAULT_JULIA_Z;
-                    viewPort.cr = DEFAULT_CR;
-                    viewPort.ci = DEFAULT_CI;
+                    if (event.shiftKey) {
+                        viewPort.cr = DEFAULT_CR;
+                        viewPort.ci = DEFAULT_CI;
+                    }
                 } else if (fractal === 'phoenix') {
                     viewPort.x = DEFAULT_PHOENIX_X;
                     viewPort.z = DEFAULT_PHOENIX_Z;
-                    viewPort.cr = DEFAULT_PHOENIX_CR;
-                    viewPort.ci = DEFAULT_PHOENIX_CI;
+                    if (event.shiftKey) {
+                        viewPort.cr = DEFAULT_PHOENIX_CR;
+                        viewPort.ci = DEFAULT_PHOENIX_CI;
+                    }
                 } else {
                     viewPort.x = DEFAULT_MANDELBROT_X;
                     viewPort.z = DEFAULT_MANDELBROT_Z;
-                    viewPort.cr = DEFAULT_CR;
-                    viewPort.ci = DEFAULT_CI;
+                    if (event.shiftKey) {
+                        viewPort.cr = DEFAULT_CR;
+                        viewPort.ci = DEFAULT_CI;
+                    }
                 }
 
                 viewPort.y = DEFAULT_Y;
@@ -1803,35 +1861,19 @@ for (let index = 1; index <= 16; ++ index) {
     IGNORE_KEYS.add(`F${index}`);
 }
 
-const CI_FACTOR = 1.01;
-const CR_FACTOR = 1.001;
-
-const CI_FACTOR_FINE = 1.001;
-const CR_FACTOR_FINE = 1.0001;
-
 /**
  * @param {WheelEvent} event 
  */
 window.addEventListener('wheel', function (event) {
     event.preventDefault();
 
-    if (event.deltaY === 0 || event.metaKey) {
-        return;
-    }
-
-    if (event.ctrlKey || event.altKey) {
-        if (event.altKey) {
-            viewPort.ci = event.deltaY < 0 ? viewPort.ci / CI_FACTOR : viewPort.ci * CI_FACTOR;
-        } else {
-            viewPort.cr = event.deltaY < 0 ? viewPort.cr / CR_FACTOR : viewPort.cr * CR_FACTOR;
-        }
-        debouncedSetUrlParams();
-        redraw();
+    if (event.deltaY === 0 || event.metaKey || event.ctrlKey || event.altKey) {
         return;
     }
 
     const z1 = viewPort.z;
-    const z2 = event.deltaY < 0 ? z1 / ZOOM_FACTOR : z1 * ZOOM_FACTOR;
+    const factor = event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
+    const z2 = event.deltaY < 0 ? z1 / factor : z1 * factor;
 
     const x = event.clientX * pixelRatio;
     const y = event.clientY * pixelRatio;
@@ -1846,6 +1888,22 @@ window.addEventListener('wheel', function (event) {
     debouncedSetUrlParams();
     redraw();
 }, { passive: false });
+
+function toggleHelp() {
+    if (helpEl.classList.contains('hidden')) {
+        showHelp();
+    } else {
+        helpEl.classList.add('hidden');
+    }
+}
+
+function showHelp() {
+    document.getElementById('fractal-input').value = fractal;
+    document.getElementById('iterations-input').value = iterations;
+    document.getElementById('threshold-input').value = threshold;
+    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
+    helpEl.classList.remove('hidden');
+}
 
 function toggleColorSpace() {
     if (gl.drawingBufferColorSpace === 'srgb') {
