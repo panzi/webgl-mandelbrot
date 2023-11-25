@@ -1398,9 +1398,9 @@ window.onkeydown = function (event) {
                     } else if (threshold > 2) {
                         threshold -= 1;
                     } else if (threshold > 1) {
-                        threshold = (Math.ceil(threshold * 10) - 1) / 10;
+                        threshold = (Math.floor(threshold * 10) - 1) / 10;
                     } else {
-                        threshold = (Math.ceil(threshold * 100) - 1) / 100;
+                        threshold = (Math.floor(threshold * 100) - 1) / 100;
                     }
                     showMessage(`decreased threshold to ${threshold}`);
                     updateShader();
