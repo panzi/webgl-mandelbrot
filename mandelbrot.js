@@ -1156,8 +1156,6 @@ window.addEventListener('touchstart', function (event) {
         helpEl.compareDocumentPosition(event.target) & Node.DOCUMENT_POSITION_CONTAINED_BY
     ) !== 0;
 
-    //showMessage(`isHelp: ${isHelp}, ${event.target.nodeName} ${helpEl.compareDocumentPosition(event.target)}`, MSG_LEVEL_INFO);
-
     if (!isHelp) {
         event.preventDefault();
     }
@@ -1544,7 +1542,7 @@ window.onkeydown = function (event) {
                 if (event.ctrlKey) {
                     viewPort.cr += event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.x += 0.1 * viewPort.z;
+                    viewPort.x += (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1565,7 +1563,7 @@ window.onkeydown = function (event) {
                 if (event.ctrlKey) {
                     viewPort.cr -= event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.x -= 0.1 * viewPort.z;
+                    viewPort.x -= (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1579,7 +1577,7 @@ window.onkeydown = function (event) {
                 if (event.ctrlKey) {
                     viewPort.ci += event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.y += 0.1 * viewPort.z;
+                    viewPort.y += (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
@@ -1593,7 +1591,7 @@ window.onkeydown = function (event) {
                 if (event.ctrlKey) {
                     viewPort.ci -= event.shiftKey ? 0.0001 : 0.001;
                 } else {
-                    viewPort.y -= 0.1 * viewPort.z;
+                    viewPort.y -= (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
                 debouncedSetUrlParams();
                 redraw();
