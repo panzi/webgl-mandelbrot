@@ -871,7 +871,7 @@ const debouncedSetThreshold = debounce(setThreshold, INPUT_THROTTLE_MS);
 function saveScreenshotBlob() {
     return new Promise((resolve, reject) => {
         try {
-            const filename = `${fractal}.png`;
+            const filename = `${FRACTAL_NAMES[fractal] || fractal}.png`;
             canvas.toBlob(blob => {
                 try {
                     const url = URL.createObjectURL(blob);
