@@ -995,7 +995,8 @@ const mousePos = {
 };
 
 const DEFAULT_PHOENIX_X = 0;
-const DEFAULT_PHOENIX_Z = 2.5;
+const DEFAULT_PHOENIX_Y = 0.05;
+const DEFAULT_PHOENIX_Z = 2;
 const DEFAULT_JULIA_X = 0;
 const DEFAULT_JULIA_Z = 2;
 const DEFAULT_MANDELBROT_X = -0.5;
@@ -1019,22 +1020,23 @@ function getUrlHash() {
         location.hash.slice(2).split(',') : [];
     if (fractal === 'julia') {
         viewPort.x = nanColesce(+x, DEFAULT_JULIA_X);
+        viewPort.y = nanColesce(+y, DEFAULT_Y);
         viewPort.z = nanColesce(+z, DEFAULT_JULIA_Z);
         viewPort.cr = nanColesce(+cr, DEFAULT_CR);
         viewPort.ci = nanColesce(+ci, DEFAULT_CI);
     } else if (fractal === 'phoenix') {
         viewPort.x = nanColesce(+x, DEFAULT_PHOENIX_X);
+        viewPort.y = nanColesce(+y, DEFAULT_PHOENIX_Y);
         viewPort.z = nanColesce(+z, DEFAULT_PHOENIX_Z);
         viewPort.cr = nanColesce(+cr, DEFAULT_PHOENIX_CR);
         viewPort.ci = nanColesce(+ci, DEFAULT_PHOENIX_CI);
     } else {
         viewPort.x = nanColesce(+x, DEFAULT_MANDELBROT_X);
+        viewPort.y = nanColesce(+y, DEFAULT_Y);
         viewPort.z = nanColesce(+z, DEFAULT_MANDELBROT_Z);
         viewPort.cr = nanColesce(+cr, DEFAULT_CR);
         viewPort.ci = nanColesce(+ci, DEFAULT_CI);
     }
-
-    viewPort.y = nanColesce(+y, DEFAULT_Y);
 }
 
 function setUrlParams() {
@@ -1682,6 +1684,7 @@ window.onkeydown = function (event) {
 
                 if (fractal === 'julia') {
                     viewPort.x = DEFAULT_JULIA_X;
+                    viewPort.y = DEFAULT_Y;
                     viewPort.z = DEFAULT_JULIA_Z;
                     if (event.shiftKey) {
                         viewPort.cr = DEFAULT_CR;
@@ -1689,6 +1692,7 @@ window.onkeydown = function (event) {
                     }
                 } else if (fractal === 'phoenix') {
                     viewPort.x = DEFAULT_PHOENIX_X;
+                    viewPort.y = DEFAULT_PHOENIX_Y;
                     viewPort.z = DEFAULT_PHOENIX_Z;
                     if (event.shiftKey) {
                         viewPort.cr = DEFAULT_PHOENIX_CR;
@@ -1696,14 +1700,13 @@ window.onkeydown = function (event) {
                     }
                 } else {
                     viewPort.x = DEFAULT_MANDELBROT_X;
+                    viewPort.y = DEFAULT_Y;
                     viewPort.z = DEFAULT_MANDELBROT_Z;
                     if (event.shiftKey) {
                         viewPort.cr = DEFAULT_CR;
                         viewPort.ci = DEFAULT_CI;
                     }
                 }
-
-                viewPort.y = DEFAULT_Y;
 
                 redraw();
                 setUrlParams();
