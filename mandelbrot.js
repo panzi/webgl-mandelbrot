@@ -697,10 +697,10 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float zxzx = z.x*z.x;
         float zyzy = z.y*z.y;
-        float a = zxzx + zyzy;
-        if (a >= ${toFloatStr(threshold * threshold)}) {
+        float dd = zxzx + zyzy;
+        if (dd >= ${toFloatStr(threshold * threshold)}) {
             float v = ${smooth ?
-                `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
+                `float(i + 1) - log(log(dd)) * ${toFloatStr(1 / Math.log(2))}` :
                 'float(i + 1)'
             };
 
@@ -743,10 +743,10 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float zxzx = z.x*z.x;
         float zyzy = z.y*z.y;
-        float a = zxzx + zyzy;
-        if (a >= ${toFloatStr(threshold * threshold)}) {
+        float dd = zxzx + zyzy;
+        if (dd >= ${toFloatStr(threshold * threshold)}) {
             float v = ${smooth ?
-                `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
+                `float(i + 1) - log(log(dd)) * ${toFloatStr(1 / Math.log(2))}` :
                 'float(i + 1)'
             };
 
@@ -761,7 +761,6 @@ void main() {
 }`;
 }
 
-// http://usefuljs.net/fractals/docs/mandelvariants.html
 function getPhoenixCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -782,6 +781,8 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+// Zn+1 = Zn^2 + Re(C) + Im(C) * Zn-1
+
 void main() {
     float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
     float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
@@ -791,18 +792,20 @@ void main() {
     for (int i = 0; i < ${iterations}; ++ i) {
         float zxzx = z.x*z.x;
         float zyzy = z.y*z.y;
-        float a = zxzx + zyzy; // XXX
-        if (a >= ${toFloatStr(threshold * threshold)}) {
+
+        float dd = zxzx + zyzy;
+        if (dd >= ${toFloatStr(threshold * threshold)}) {
             float v = ${smooth ?
-                `float(i + 1) - log(log(a)) * ${toFloatStr(1 / Math.log(2))}` :
+                `float(i + 1) - log(log(dd)) * ${toFloatStr(1 / Math.log(2))}` :
                 'float(i + 1)'
             };
 
             ${colorCode}
             return;
         }
-        float zx = zxzx - zyzy + c.x * z0.x - c.y * z0.y;
-        float zy = 2.0 * z.x*z.y + c.y * z0.y + z0.x * c.y;
+        float zx = zxzx - zyzy + c.x + c.y * z0.x;
+        float zy = 2.0 * z.x*z.y + c.y * z0.y;
+
         z0 = z;
         z.x = zx;
         z.y = zy;
@@ -1000,7 +1003,7 @@ const DEFAULT_MANDELBROT_Z = 2.5;
 const DEFAULT_Y = 0;
 const DEFAULT_CR = -0.744;
 const DEFAULT_CI = 0.148;
-const DEFAULT_PHOENIX_CR = 0.5667;
+const DEFAULT_PHOENIX_CR = 1/2 + 2/30; // 0.566666;
 const DEFAULT_PHOENIX_CI = -0.5;
 
 const viewPort = {
