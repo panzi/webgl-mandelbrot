@@ -858,17 +858,18 @@ function cycleColors(offset) {
     }
     const value = presets.options[index].value;
     presets.value = value;
-    setColorCode(COLOR_CODES[value]);
-    colors = value;
-    setUrlParams();
-    showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
     if (value === 'custom') {
+        setColorCode(document.getElementById('color-code').value);
         document.getElementById('derive-custom-color-code-row').classList.add('hidden');
         document.getElementById('custom-color-code-row').classList.remove('hidden');
     } else {
+        setColorCode(COLOR_CODES[value]);
         document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
         document.getElementById('custom-color-code-row').classList.add('hidden');
     }
+    colors = value;
+    setUrlParams();
+    showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
 }
 
 const canvas = document.getElementById("canvas");
