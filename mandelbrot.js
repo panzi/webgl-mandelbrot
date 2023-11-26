@@ -1710,32 +1710,45 @@ window.onkeydown = function (event) {
                 event.preventDefault();
                 break;
 
-            case 'm':
+            case 'PageUp':
+            {
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
                 }
-                fractal = 'mandelbrot';
-                document.title = FRACTAL_NAMES[fractal];
+                const fractalEl = document.getElementById('fractal-input');
+                const index = (fractalEl.options.selectedIndex + 1) % fractalEl.options.length;
+                const value = fractalEl.options[index].value;
+                fractal = value;
+                const name = document.title = FRACTAL_NAMES[fractal] || fractal;
                 updateShader();
                 redraw();
                 setUrlParams();
-                document.getElementById('fractal-input').value = fractal;
+                fractalEl.value = fractal;
+                showMessage(`showing ${name} fractal`);
                 event.preventDefault();
                 break;
-
-            case 'j':
+            }
+            case 'PageDown':
+            {
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
                 }
-                fractal = 'julia';
-                document.title = FRACTAL_NAMES[fractal];
+                const fractalEl = document.getElementById('fractal-input');
+                let index = (fractalEl.options.selectedIndex - 1) % fractalEl.options.length;
+                if (index < 0) {
+                    index += fractalEl.options.length;
+                }
+                const value = fractalEl.options[index].value;
+                fractal = value;
+                const name = document.title = FRACTAL_NAMES[fractal];
                 updateShader();
                 redraw();
                 setUrlParams();
-                document.getElementById('fractal-input').value = fractal;
+                fractalEl.value = fractal;
+                showMessage(`showing ${name} fractal`);
                 event.preventDefault();
                 break;
-
+            }
             case 'o':
                 if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
                     break;
