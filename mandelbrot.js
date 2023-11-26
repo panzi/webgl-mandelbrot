@@ -293,6 +293,29 @@ fragColor.y = pow(fragColor.y, 1.0/2.2);
 fragColor.z = pow(fragColor.z, 1.0/2.2);
 fragColor.w = 1.0;`,
 
+    custom: `\
+// same as Horizon (sRGB), but with different scaling of v
+v *= 0.015;
+v = mod(v, 1.0);
+float t;
+if (v < 0.16) {
+    t = v / 0.16;
+    fragColor.xyz = mix(${glslColorRGB8(0, 7, 100)}, ${glslColorRGB8(32, 107, 203)}, t);
+} else if (v < 0.42) {
+    t = (v - 0.16) / (0.42 - 0.16);
+    fragColor.xyz = mix(${glslColorRGB8(32, 107, 203)}, ${glslColorRGB8(237, 255, 255)}, t);
+} else if (v < 0.6425) {
+    t = (v - 0.42) / (0.6425 - 0.42);
+    fragColor.xyz = mix(${glslColorRGB8(237, 255, 255)}, ${glslColorRGB8(255, 170, 0)}, t);
+} else if (v < 0.8575) {
+    t = (v - 0.6425) / (0.8575 - 0.6425);
+    fragColor.xyz = mix(${glslColorRGB8(255, 170, 0)}, ${glslColorRGB8(0, 2, 0)}, t);
+} else {
+    t = (v - 0.8575) / (1.0 - 0.8575);
+    fragColor.xyz = mix(${glslColorRGB8(0, 2, 0)}, ${glslColorRGB8(0, 7, 100)}, t);
+}
+fragColor.w = 1.0;`,
+
     sepia: `\
 v *= 0.0005;
 v = mod(v, 2.0);
@@ -817,7 +840,15 @@ void main() {
 let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
 let colorCode = COLOR_CODES[colors] || COLOR_CODES[DEFAULT_COLORS];
 document.getElementById('color-code-preset').value = colors || DEFAULT_COLORS;
-document.getElementById('color-code').value = COLOR_CODES[DEFAULT_COLORS];
+document.getElementById('color-code').value = COLOR_CODES.custom;
+
+if (colors === 'custom') {
+    document.getElementById('derive-custom-color-code-row').classList.add('hidden');
+    document.getElementById('custom-color-code-row').classList.remove('hidden');
+} else {
+    document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
+    document.getElementById('custom-color-code-row').classList.add('hidden');
+}
 
 function cycleColors(offset) {
     const presets = document.getElementById('color-code-preset');
@@ -825,21 +856,19 @@ function cycleColors(offset) {
     if (index < 0) {
         index += presets.options.length;
     }
-    let value = presets.options[index].value;
-    if (value === 'custom') {
-        index = (index + offset) % presets.options.length;
-        if (index < 0) {
-            index += presets.options.length;
-        }
-        value = presets.options[index].value;
-    }
+    const value = presets.options[index].value;
     presets.value = value;
     setColorCode(COLOR_CODES[value]);
     colors = value;
     setUrlParams();
     showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
-    document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
-    document.getElementById('custom-color-code-row').classList.add('hidden');
+    if (value === 'custom') {
+        document.getElementById('derive-custom-color-code-row').classList.add('hidden');
+        document.getElementById('custom-color-code-row').classList.remove('hidden');
+    } else {
+        document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
+        document.getElementById('custom-color-code-row').classList.add('hidden');
+    }
 }
 
 const canvas = document.getElementById("canvas");
