@@ -236,6 +236,37 @@ kbd {
     white-space: nowrap;
 }
 
+footer {
+    text-align: center;
+    margin-top: 1em;
+}
+
+a {
+    color: #9f9fff;
+    text-decoration: none;
+    border-bottom: currentColor dashed 1px;
+    position: relative;
+}
+
+a::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    width: 100%;
+    bottom: -2px;
+    border-bottom: black dashed 1px;
+}
+
+a:visited {
+    color: #8f8fff;
+}
+
+a:hover,
+a:active {
+    color: #b6b6ff;
+}
+
+
 ::-webkit-scrollbar {
     width: 16px;
     height: 16px;

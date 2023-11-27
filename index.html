@@ -29,7 +29,7 @@
 <canvas id="canvas"></canvas>
 <div id="fps" class="message hidden">X fps</div>
 <ol id="messages" class="message"></ol>
-<div id="help" class="message hidden"
+<section id="help" class="message hidden"
   onmousedown="event.stopPropagation();"
   ontouchmove="event.stopPropagation();"
   ontouchend="event.stopPropagation();"
@@ -44,7 +44,6 @@
     event.stopPropagation();
   "
 >
-
   <h3>Settings</h3>
 
   <form action="javascript:;" onsubmit="
@@ -351,7 +350,11 @@
       </tr>
     </tbody>
   </table>
-</div>
+
+  <footer>
+    <small>&copy; 2023 Mathias Panzenböck – <a rel="noopener" href="https://github.com/panzi/webgl-mandelbrot">Source Code on GitHub</a></small>
+  </footer>
+</section>
 <script src="mandelbrot.js"></script>
 </body>
 </html>
