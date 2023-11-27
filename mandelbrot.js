@@ -2189,6 +2189,7 @@ try {
     } else {
         redraw();
         showCursor();
+        showMessage('Press H for settings and a list of hotkeys. On mobile tripple tap.');
     }
 } catch (error) {
     console.error(error);
