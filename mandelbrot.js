@@ -1024,18 +1024,32 @@ const mousePos = {
     y: 0,
 };
 
-const DEFAULT_PHOENIX_X = 0;
-const DEFAULT_PHOENIX_Y = 0.05;
-const DEFAULT_PHOENIX_Z = 2;
-const DEFAULT_JULIA_X = 0;
-const DEFAULT_JULIA_Z = 2;
-const DEFAULT_MANDELBROT_X = -0.5;
-const DEFAULT_MANDELBROT_Z = 2.5;
-const DEFAULT_Y = 0;
 const DEFAULT_CR = -0.744;
 const DEFAULT_CI = 0.148;
-const DEFAULT_PHOENIX_CR = 1/2 + 2/30; // 0.566666;
-const DEFAULT_PHOENIX_CI = -0.5;
+
+const DEFAULT_VIEW_PORTS = {
+    mandelbrot: {
+        x: -0.5,
+        y: 0,
+        z: 2.5,
+        cr: DEFAULT_CR,
+        ci: DEFAULT_CI,
+    },
+    julia: {
+        x: 0,
+        y: 0,
+        z: 2,
+        cr: DEFAULT_CR,
+        ci: DEFAULT_CI,
+    },
+    phoenix: {
+        x: 0,
+        y: 0.05,
+        z: 2,
+        cr: 1/2 + 2/30, // 0.566666,
+        ci: -0.5,
+    },
+};
 
 const viewPort = {
     x: 0,
@@ -1048,31 +1062,18 @@ const viewPort = {
 function getUrlHash() {
     const [x, y, z, cr, ci] = location.hash.startsWith('#!') ?
         location.hash.slice(2).split(',') : [];
-    if (fractal === 'julia') {
-        viewPort.x = nanColesce(+x, DEFAULT_JULIA_X);
-        viewPort.y = nanColesce(+y, DEFAULT_Y);
-        viewPort.z = nanColesce(+z, DEFAULT_JULIA_Z);
-        viewPort.cr = nanColesce(+cr, DEFAULT_CR);
-        viewPort.ci = nanColesce(+ci, DEFAULT_CI);
-    } else if (fractal === 'phoenix') {
-        viewPort.x = nanColesce(+x, DEFAULT_PHOENIX_X);
-        viewPort.y = nanColesce(+y, DEFAULT_PHOENIX_Y);
-        viewPort.z = nanColesce(+z, DEFAULT_PHOENIX_Z);
-        viewPort.cr = nanColesce(+cr, DEFAULT_PHOENIX_CR);
-        viewPort.ci = nanColesce(+ci, DEFAULT_PHOENIX_CI);
-    } else {
-        viewPort.x = nanColesce(+x, DEFAULT_MANDELBROT_X);
-        viewPort.y = nanColesce(+y, DEFAULT_Y);
-        viewPort.z = nanColesce(+z, DEFAULT_MANDELBROT_Z);
-        viewPort.cr = nanColesce(+cr, DEFAULT_CR);
-        viewPort.ci = nanColesce(+ci, DEFAULT_CI);
-    }
+    const defaultViewPort = DEFAULT_VIEW_PORTS[fractal] || DEFAULT_VIEW_PORTS.mandelbrot;
+    viewPort.x = nanColesce(parseFloat(x), defaultViewPort.x);
+    viewPort.y = nanColesce(parseFloat(y), defaultViewPort.y);
+    viewPort.z = nanColesce(parseFloat(z), defaultViewPort.z);
+    viewPort.cr = nanColesce(parseFloat(cr), defaultViewPort.cr);
+    viewPort.ci = nanColesce(parseFloat(ci), defaultViewPort.ci);
 }
 
 function setUrlParams() {
     const params = [];
     if (fractal !== 'mandelbrot') {
-        params.push(`fractal=${fractal}`);
+        params.push(`fractal=${encodeURIComponent(fractal)}`);
     }
     if (iterations !== DEFAULT_ITERATIONS) {
         params.push(`iterations=${iterations}`);
@@ -1708,44 +1709,28 @@ window.onkeydown = function (event) {
                 break;
 
             case 'Home':
+            {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
 
-                if (fractal === 'julia') {
-                    viewPort.x = DEFAULT_JULIA_X;
-                    viewPort.y = DEFAULT_Y;
-                    viewPort.z = DEFAULT_JULIA_Z;
-                    if (event.shiftKey) {
-                        viewPort.cr = DEFAULT_CR;
-                        viewPort.ci = DEFAULT_CI;
-                    }
-                } else if (fractal === 'phoenix') {
-                    viewPort.x = DEFAULT_PHOENIX_X;
-                    viewPort.y = DEFAULT_PHOENIX_Y;
-                    viewPort.z = DEFAULT_PHOENIX_Z;
-                    if (event.shiftKey) {
-                        viewPort.cr = DEFAULT_PHOENIX_CR;
-                        viewPort.ci = DEFAULT_PHOENIX_CI;
-                    }
-                } else {
-                    viewPort.x = DEFAULT_MANDELBROT_X;
-                    viewPort.y = DEFAULT_Y;
-                    viewPort.z = DEFAULT_MANDELBROT_Z;
-                    if (event.shiftKey) {
-                        viewPort.cr = DEFAULT_CR;
-                        viewPort.ci = DEFAULT_CI;
-                    }
+                const newViewPort = DEFAULT_VIEW_PORTS[fractal] || DEFAULT_VIEW_PORTS.mandelbrot;
+                viewPort.x = newViewPort.x;
+                viewPort.y = newViewPort.y;
+                viewPort.z = newViewPort.z;
+                if (event.shiftKey) {
+                    viewPort.cr = newViewPort.cr;
+                    viewPort.ci = newViewPort.ci;
                 }
 
                 redraw();
                 setUrlParams();
                 event.preventDefault();
                 break;
-
+            }
             case 'PageUp':
             {
-                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
                 const fractalEl = document.getElementById('fractal-input');
@@ -1753,6 +1738,14 @@ window.onkeydown = function (event) {
                 const value = fractalEl.options[index].value;
                 fractal = value;
                 const name = document.title = FRACTAL_NAMES[fractal] || fractal;
+                if (event.shiftKey) {
+                    const newViewPort = DEFAULT_VIEW_PORTS[fractal] || DEFAULT_VIEW_PORTS.mandelbrot;
+                    viewPort.x = newViewPort.x;
+                    viewPort.y = newViewPort.y;
+                    viewPort.z = newViewPort.z;
+                    viewPort.cr = newViewPort.cr;
+                    viewPort.ci = newViewPort.ci;
+                }
                 updateShader();
                 redraw();
                 setUrlParams();
@@ -1763,7 +1756,7 @@ window.onkeydown = function (event) {
             }
             case 'PageDown':
             {
-                if (event.altKey || event.metaKey || event.shiftKey || event.ctrlKey) {
+                if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
                 const fractalEl = document.getElementById('fractal-input');
@@ -1774,6 +1767,14 @@ window.onkeydown = function (event) {
                 const value = fractalEl.options[index].value;
                 fractal = value;
                 const name = document.title = FRACTAL_NAMES[fractal];
+                if (event.shiftKey) {
+                    const newViewPort = DEFAULT_VIEW_PORTS[fractal] || DEFAULT_VIEW_PORTS.mandelbrot;
+                    viewPort.x = newViewPort.x;
+                    viewPort.y = newViewPort.y;
+                    viewPort.z = newViewPort.z;
+                    viewPort.cr = newViewPort.cr;
+                    viewPort.ci = newViewPort.ci;
+                }
                 updateShader();
                 redraw();
                 setUrlParams();
