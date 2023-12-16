@@ -58,6 +58,7 @@
             <span class="select-wrapper">
               <select id="fractal-input" onchange="
                 fractal = this.value;
+                document.title = FRACTAL_NAMES[fractal] || fractal;
                 updateShader();
                 redraw();
                 setUrlParams();
