@@ -106,6 +106,7 @@ const FRACTAL_NAMES = {
     phoenix: 'Phoenix',
     burningship: 'Burning Ship',
     burningshipjulia: 'Burning Ship Julia',
+    mandelbox: 'Mandelbox',
 };
 
 const params = new URLSearchParams(location.search);
@@ -930,12 +931,80 @@ void main() {
 }`;
 }
 
+function getMandelboxCode(iterations, threshold, colorCode, smooth) {
+    return `\
+#version 300 es
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
+
+uniform vec2 canvasSize;
+uniform vec3 viewPort;
+uniform vec2 c;
+out vec4 fragColor;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
+    float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
+    vec2 z = vec2(0.0, 0.0);
+
+    float dd = 0.0;
+
+    for (int i = 0; i < ${iterations}; ++ i) {
+        if (dd >= ${toFloatStr(threshold * threshold)}) {
+            float v = ${smooth ?
+                `float(i + 1) - log(log(dd)) * ${toFloatStr(1 / Math.log(2))}` :
+                'float(i + 1)'
+            };
+
+            ${colorCode}
+            return;
+        }
+
+        if (z.x > 1.0) {
+            z.x = 2.0 - z.x;
+        } else if (z.x < -1.0) {
+            z.x = -2.0 - z.x;
+        }
+
+        if (z.y > 1.0) {
+            z.y = 2.0 - z.y;
+        } else if (z.y < -1.0) {
+            z.y = -2.0 - z.y;
+        }
+
+        float zxzx = z.x*z.x;
+        float zyzy = z.y*z.y;
+        dd = zxzx + zyzy;
+
+        if (dd < 0.25) {
+            z *= 4.0;
+        } else if (dd < 1.0) {
+            z /= dd;
+        }
+
+        z *= c.x;
+        z.x += x;
+        z.y += y;
+    }
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}`;
+}
 const FRACTALS = {
     mandelbrot: getMandelbrotCode,
     julia: getJuliaCode,
     phoenix: getPhoenixCode,
     burningship: getBurnignShipCode,
     burningshipjulia: getBurnignShipJuliaCode,
+    mandelbox: getMandelboxCode,
 };
 
 let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
@@ -1167,6 +1236,13 @@ const DEFAULT_VIEW_PORTS = {
         cr: DEFAULT_BURNING_SHIP_JULIA_CR,
         ci: DEFAULT_BURNING_SHIP_JULIA_CI,
     },
+    mandelbox: {
+        x: 0,
+        y: 0,
+        z: 15,
+        cr: 2,
+        ci: 0,
+    },
 };
 
 const viewPort = {
@@ -1315,7 +1391,7 @@ window.onmousemove = function (event) {
             dx *= 0.1;
             dy *= 0.1;
         }
-        if (event.ctrlKey && (fractal === 'julia' || fractal === 'phoenix' || fractal === 'burningshipjulia')) {
+        if (event.ctrlKey && (fractal === 'julia' || fractal === 'phoenix' || fractal === 'burningshipjulia' || fractal === 'mandelbox')) {
             viewPort.cr += dx / canvas.height;
             viewPort.ci += dy / canvas.height;
         } else {
@@ -1439,7 +1515,7 @@ window.addEventListener('touchmove', function (event) {
     const dx = x2 - x1;
     const dy = y2 - y1;
 
-    if (touchCount2 > 2 && (fractal === 'julia' || fractal === 'phoenix' || fractal === 'burningshipjulia')) {
+    if (touchCount2 > 2 && (fractal === 'julia' || fractal === 'phoenix' || fractal === 'burningshipjulia' || fractal === 'mandelbox')) {
         viewPort.cr += dx * 0.1 / canvas.height;
         viewPort.ci += dy * 0.1 / canvas.height;
     } else {
