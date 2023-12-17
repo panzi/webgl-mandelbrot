@@ -107,6 +107,8 @@ const FRACTAL_NAMES = {
     burningship: 'Burning Ship',
     burningshipjulia: 'Burning Ship Julia',
     mandelbox: 'Mandelbox',
+    mandelbar: 'Mandelbar',
+    mandelbarjulia: 'Mandelbar Julia',
 };
 
 const params = new URLSearchParams(location.search);
@@ -132,6 +134,7 @@ const colorSpaceParam = (params.get('colorspace') || '').trim() || DEFAULT_COLOR
 
 let smooth = (params.get('smooth') || '').trim().toLowerCase() !== 'false';
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
+let hasComplexParam = false;
 let animationFPS = parseFloat(params.get('fps'));
 
 if (!isFinite(animationFPS) || animationFPS < 0) {
@@ -998,6 +1001,98 @@ void main() {
     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }`;
 }
+
+function getMandelbarCode(iterations, threshold, colorCode, smooth) {
+    return `\
+#version 300 es
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
+
+uniform vec2 canvasSize;
+uniform vec3 viewPort;
+out vec4 fragColor;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 z = vec2(0.0, 0.0);
+    float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
+    float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
+
+    for (int i = 0; i < ${iterations}; ++ i) {
+        float zxzx = z.x*z.x;
+        float zyzy = z.y*z.y;
+        float dd = zxzx + zyzy;
+        if (dd >= ${toFloatStr(threshold * threshold)}) {
+            float v = ${smooth ?
+                `float(i + 1) - log(log(dd)) * ${toFloatStr(1 / Math.log(2))}` :
+                'float(i + 1)'
+            };
+
+            ${colorCode}
+            return;
+        }
+        float zx = zxzx - zyzy + x;
+        z.y = 2.0 * z.x*-z.y + y;
+        z.x = zx;
+    }
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}`;
+}
+
+function getMandelbarJuliaCode(iterations, threshold, colorCode, smooth) {
+    return `\
+#version 300 es
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
+
+uniform vec2 canvasSize;
+uniform vec3 viewPort;
+uniform vec2 c;
+out vec4 fragColor;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    float x = gl_FragCoord.x / canvasSize.y * viewPort.z + viewPort.x;
+    float y = gl_FragCoord.y / canvasSize.y * viewPort.z + viewPort.y;
+    vec2 z = vec2(x, y);
+
+    for (int i = 0; i < ${iterations}; ++ i) {
+        float zxzx = z.x*z.x;
+        float zyzy = z.y*z.y;
+        float dd = zxzx + zyzy;
+        if (dd >= ${toFloatStr(threshold * threshold)}) {
+            float v = ${smooth ?
+                `float(i + 1) - log(log(dd)) * ${toFloatStr(1 / Math.log(2))}` :
+                'float(i + 1)'
+            };
+
+            ${colorCode}
+            return;
+        }
+        float zx = zxzx - zyzy + c.x;
+        z.y = 2.0 * z.x*-z.y + c.y;
+        z.x = zx;
+    }
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}`;
+}
+
 const FRACTALS = {
     mandelbrot: getMandelbrotCode,
     julia: getJuliaCode,
@@ -1005,6 +1100,8 @@ const FRACTALS = {
     burningship: getBurnignShipCode,
     burningshipjulia: getBurnignShipJuliaCode,
     mandelbox: getMandelboxCode,
+    mandelbar: getMandelbarCode,
+    mandelbarjulia: getMandelbarJuliaCode,
 };
 
 let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
@@ -1243,6 +1340,20 @@ const DEFAULT_VIEW_PORTS = {
         cr: 2,
         ci: 0,
     },
+    mandelbar: {
+        x: 0,
+        y: 0,
+        z: 2,
+        cr: DEFAULT_MANDELBROT_CR,
+        ci: DEFAULT_MANDELBROT_CI,
+    },
+    mandelbarjulia: {
+        x: 0,
+        y: 0,
+        z: 2,
+        cr: DEFAULT_MANDELBROT_CR,
+        ci: DEFAULT_MANDELBROT_CI,
+    },
 };
 
 const viewPort = {
@@ -1391,7 +1502,7 @@ window.onmousemove = function (event) {
             dx *= 0.1;
             dy *= 0.1;
         }
-        if (event.ctrlKey && (fractal === 'julia' || fractal === 'phoenix' || fractal === 'burningshipjulia' || fractal === 'mandelbox')) {
+        if (event.ctrlKey && hasComplexParam) {
             viewPort.cr += dx / canvas.height;
             viewPort.ci += dy / canvas.height;
         } else {
@@ -1515,7 +1626,7 @@ window.addEventListener('touchmove', function (event) {
     const dx = x2 - x1;
     const dy = y2 - y1;
 
-    if (touchCount2 > 2 && (fractal === 'julia' || fractal === 'phoenix' || fractal === 'burningshipjulia' || fractal === 'mandelbox')) {
+    if (touchCount2 > 2 && hasComplexParam) {
         viewPort.cr += dx * 0.1 / canvas.height;
         viewPort.ci += dy * 0.1 / canvas.height;
     } else {
@@ -2203,6 +2314,11 @@ function setup() {
         linkProgram();
     };
 
+    let vertexPosition;
+    let canvasSizeUniform;
+    let viewPortUniform;
+    let cUniform;
+
     function linkProgram () {
         gl.linkProgram(program);
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -2216,6 +2332,8 @@ function setup() {
         canvasSizeUniform = gl.getUniformLocation(program, 'canvasSize');
         viewPortUniform = gl.getUniformLocation(program, 'viewPort');
         cUniform = gl.getUniformLocation(program, 'c');
+
+        hasComplexParam = !!cUniform;
     }
 
     const vertices = [
