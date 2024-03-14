@@ -15,6 +15,12 @@ h3:first-child {
 
 select,
 input,
+button {
+    font-family: inherit;
+}
+
+select,
+input,
 textarea,
 button {
     color: white;
