@@ -1,11 +1,40 @@
+/**
+ * @typedef {{
+ *   x: number;
+ *   y: number;
+ *   z: number;
+ *   cr: number;
+ *   ci: number;
+ *   d: number;
+ * }} AnimationFrame
+ */
+
+/**
+ * 
+ * @param {number} value 
+ * @param {number} min 
+ * @param {number} max 
+ * @returns {number}
+ */
 function clamp(value, min, max) {
     return value < min ? min : value > max ? max : value;
 }
 
+/**
+ * 
+ * @param {number} value 
+ * @param {number} defaultValue 
+ * @returns {number}
+ */
 function nanColesce(value, defaultValue) {
     return isNaN(value) ? defaultValue : value;
 }
 
+/**
+ * 
+ * @param {number} value 
+ * @returns {string}
+ */
 function toFloatStr(value) {
     const str = String(value);
     if (!str.includes('.') && !str.includes('e')) {
@@ -14,6 +43,11 @@ function toFloatStr(value) {
     return str;
 }
 
+/**
+ * 
+ * @param {number} x 
+ * @returns {number}
+ */
 function sRgb8ToLinear(x) {
     const f = x / 255.0;
     // cheaper, less accurate conversion which is also applied in reverse in the shader
@@ -24,6 +58,14 @@ function sRgb8ToLinear(x) {
     // );
 }
 
+/**
+ * 
+ * @param {number} r 
+ * @param {number} g 
+ * @param {number} b 
+ * @param {number=} a 
+ * @returns {string}
+ */
 function glslColorRGB8AsLinear(r, g, b, a) {
     const x = sRgb8ToLinear(r);
     const y = sRgb8ToLinear(g);
@@ -36,6 +78,14 @@ function glslColorRGB8AsLinear(r, g, b, a) {
     }
 }
 
+/**
+ * 
+ * @param {number} r 
+ * @param {number} g 
+ * @param {number} b 
+ * @param {number=} a 
+ * @returns {string}
+ */
 function glslColorRGB8(r, g, b, a) {
     const x = r / 255;
     const y = g / 255;
@@ -48,6 +98,12 @@ function glslColorRGB8(r, g, b, a) {
     }
 }
 
+/**
+ * @template F
+ * @param {F} func
+ * @param {number} delay
+ * @returns {F}
+ */
 function throttle(func, delay) {
     let args = null;
     let self = null;
@@ -76,6 +132,12 @@ function throttle(func, delay) {
     };
 }
 
+/**
+ * @template F
+ * @param {F} func
+ * @param {number} delay
+ * @returns {F}
+ */
 function debounce(func, delay) {
     let args = null;
     let self = null;
@@ -699,6 +761,14 @@ fragColor.w = 1.0;`,
 
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getMandelbrotCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -744,6 +814,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getJuliaCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -790,6 +868,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getPhoenixCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -843,6 +929,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getBurnignShipCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -888,6 +982,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getBurnignShipJuliaCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -934,6 +1036,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getMandelboxCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -1002,6 +1112,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getMandelbarCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -1047,6 +1165,14 @@ void main() {
 }`;
 }
 
+/**
+ * 
+ * @param {number} iterations 
+ * @param {number} threshold 
+ * @param {string} colorCode 
+ * @param {boolean} smooth 
+ * @returns {string}
+ */
 function getMandelbarJuliaCode(iterations, threshold, colorCode, smooth) {
     return `\
 #version 300 es
@@ -1117,6 +1243,10 @@ if (colors === 'custom') {
     document.getElementById('custom-color-code-row').classList.add('hidden');
 }
 
+/**
+ * 
+ * @param {number} offset 
+ */
 function cycleColors(offset) {
     const presets = document.getElementById('color-code-preset');
     let index = (presets.options.selectedIndex + offset) % presets.options.length;
@@ -1148,6 +1278,11 @@ const MSG_LEVEL_INFO = 'info';
 const MSG_LEVEL_WARNING = 'warn';
 const MSG_LEVEL_ERROR = 'error';
 
+/**
+ * 
+ * @param {string} message 
+ * @param {('info'|'warn'|'error')=} level 
+ */
 function showMessage(message, level) {
     level ||= 'info';
     console[level](message);
@@ -1160,9 +1295,21 @@ function showMessage(message, level) {
     }, 5000);
 }
 
+/**
+ * @type {WebGL2RenderingContext}
+ */
 let gl;
+
+/**
+ * @type {function():void}
+ */
 let redraw;
+
+/**
+ * @type {function():void}
+ */
 let updateShader;
+
 let sampleRatio = 1;
 let pixelRatio = window.devicePixelRatio * sampleRatio;
 
@@ -1173,6 +1320,10 @@ function resizeCanvas() {
     canvas.height = pixelRatio * window.innerHeight;
 }
 
+/**
+ * 
+ * @param {string} newColorCode 
+ */
 function setColorCode(newColorCode) {
     const oldColorCode = colorCode;
     try {
@@ -1190,6 +1341,10 @@ function setColorCode(newColorCode) {
 
 const debouncedSetColorCode = debounce(setColorCode, INPUT_THROTTLE_MS);
 
+/**
+ * 
+ * @param {number} newIterations 
+ */
 function setIterations(newIterations) {
     if (!isFinite(newIterations) || newIterations <= 0 || (newIterations|0) !== newIterations) {
         throw new Error(`illegal iterations: ${newIterations}`);
@@ -1203,6 +1358,10 @@ function setIterations(newIterations) {
     setUrlParams();
 }
 
+/**
+ * 
+ * @param {number} newThreshold 
+ */
 function setThreshold(newThreshold) {
     if (!isFinite(newThreshold) || newThreshold <= 0) {
         throw new Error(`illegal threshold: ${newThreshold}`);
@@ -1219,6 +1378,10 @@ function setThreshold(newThreshold) {
 const debouncedSetIterations = debounce(setIterations, INPUT_THROTTLE_MS);
 const debouncedSetThreshold = debounce(setThreshold, INPUT_THROTTLE_MS);
 
+/**
+ * 
+ * @returns {Promise<void>}
+ */
 function saveScreenshotBlob() {
     return new Promise((resolve, reject) => {
         try {
@@ -2271,6 +2434,13 @@ function toggleColorSpace() {
     redraw();
 }
 
+/**
+ * 
+ * @param {WebGL2RenderingContext} gl 
+ * @param {number} shaderType 
+ * @param {string} sourceCode 
+ * @returns {WebGLShader | null}
+ */
 function createShader(gl, shaderType, sourceCode) {
     const shader = gl.createShader(shaderType);
     gl.shaderSource(shader, sourceCode.trim());
@@ -2295,6 +2465,10 @@ function setup() {
     // gl.enable(gl.DITHER);
 
     const program = gl.createProgram();
+
+    /**
+     * @type {string}
+     */
     let fragmentCode = (FRACTALS[fractal] || FRACTALS.mandelbrot)(iterations, threshold, colorCode, smooth);
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_CODE);
@@ -2314,9 +2488,24 @@ function setup() {
         linkProgram();
     };
 
+    /**
+     * @type {GLint}
+     */
     let vertexPosition;
+
+    /**
+     * @type {WebGLUniformLocation | null}
+     */
     let canvasSizeUniform;
+
+    /**
+     * @type {WebGLUniformLocation | null}
+     */
     let viewPortUniform;
+
+    /**
+     * @type {WebGLUniformLocation | null}
+     */
     let cUniform;
 
     function linkProgram () {
@@ -2398,6 +2587,12 @@ function stopAnimation() {
     animating = false;
 }
 
+/**
+ * 
+ * @param {AnimationFrame[]|null} animation 
+ * @param {boolean} loop 
+ * @returns {void}
+ */
 function playAnimation(animation, loop) {
     console.log("starting animation...");
     if (animationTimer !== null) {
