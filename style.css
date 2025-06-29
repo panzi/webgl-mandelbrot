@@ -128,6 +128,21 @@ input[type=number] {
     text-align: right;
 }
 
+.multi-input {
+    display: flex;
+    flex-direction: row;
+}
+
+.multi-input > input {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.multi-input > span {
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
 .right {
     float: right;
 }

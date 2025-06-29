@@ -25,6 +25,24 @@
  * }} AnimationFrame
  */
 
+const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById("canvas"));
+const fpsEl = /** @type {Element} */ (document.getElementById("fps"));
+const messagesEl = /** @type {HTMLOListElement} */ (document.getElementById("messages"));
+const helpEl = /** @type {Element} */ (document.getElementById("help"));
+
+const xInputEl = /** @type {HTMLInputElement} */ (document.getElementById("x-input"));
+const yInputEl = /** @type {HTMLInputElement} */ (document.getElementById("y-input"));
+const zoomInputEl = /** @type {HTMLInputElement} */ (document.getElementById("zoom-input"));
+const crInputEl = /** @type {HTMLInputElement} */ (document.getElementById("cr-input"));
+const ciInputEl = /** @type {HTMLInputElement} */ (document.getElementById("ci-input"));
+const fractalInputEl = /** @type {HTMLSelectElement} */ (document.getElementById('fractal-input'));
+const colorSpaceInputEl = /** @type {HTMLInputElement} */ (document.getElementById('colorspace-input'));
+const smoothInputEl = /** @type {HTMLInputElement} */ (document.getElementById('smooth-input'));
+const iterationsInputEl = /** @type {HTMLInputElement} */ (document.getElementById('iterations-input'));
+const thresholdInputEl = /** @type {HTMLInputElement} */ (document.getElementById('threshold-input'));
+const colorCodePresetInputEl = /** @type {HTMLSelectElement} */ (document.getElementById('color-code-preset'));
+const colorCodeInputEl = /** @type {HTMLTextAreaElement} */ (document.getElementById('color-code'));
+
 /**
  * 
  * @param {number} value 
@@ -222,7 +240,7 @@ if (!isFinite(animationFPS) || animationFPS < 0) {
 }
 
 /** @type {HTMLInputElement} */ (document.getElementById('fps-input')).value = String(animationFPS);
-/** @type {HTMLInputElement} */ (document.getElementById('smooth-input')).checked = smooth;
+smoothInputEl.checked = smooth;
 
 let iterations = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, MAX_ITERATIONS), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 let threshold = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, MAX_THRESHOLD), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
@@ -1248,8 +1266,8 @@ const FRACTALS = {
 
 let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
 let colorCode = COLOR_CODES[colors] || COLOR_CODES[DEFAULT_COLORS];
-/** @type {HTMLInputElement} */ (document.getElementById('color-code-preset')).value = colors || DEFAULT_COLORS;
-/** @type {HTMLInputElement} */ (document.getElementById('color-code')).value = COLOR_CODES.custom;
+colorCodePresetInputEl.value = colors || DEFAULT_COLORS;
+colorCodeInputEl.value = COLOR_CODES.custom;
 
 if (colors === 'custom') {
     /** @type {HTMLInputElement} */ (document.getElementById('derive-custom-color-code-row')).classList.add('hidden');
@@ -1264,15 +1282,14 @@ if (colors === 'custom') {
  * @param {number} offset 
  */
 function cycleColors(offset) {
-    const presets = /** @type {HTMLSelectElement} */ (document.getElementById('color-code-preset'));
-    let index = (presets.options.selectedIndex + offset) % presets.options.length;
+    let index = (colorCodePresetInputEl.options.selectedIndex + offset) % colorCodePresetInputEl.options.length;
     if (index < 0) {
-        index += presets.options.length;
+        index += colorCodePresetInputEl.options.length;
     }
-    const value = presets.options[index].value;
-    presets.value = value;
+    const value = colorCodePresetInputEl.options[index].value;
+    colorCodePresetInputEl.value = value;
     if (value === 'custom') {
-        setColorCode(/** @type {HTMLTextAreaElement} */ (document.getElementById('color-code')).value);
+        setColorCode(colorCodeInputEl.value);
         /** @type {Element} */ (document.getElementById('derive-custom-color-code-row')).classList.add('hidden');
         /** @type {Element} */ (document.getElementById('custom-color-code-row')).classList.remove('hidden');
     } else {
@@ -1282,13 +1299,8 @@ function cycleColors(offset) {
     }
     colors = value;
     setUrlParams();
-    showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
+    showMessage(`set colors to ${colorCodePresetInputEl.options[index].label}`, MSG_LEVEL_INFO);
 }
-
-const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById("canvas"));
-const fpsEl = /** @type {Element} */ (document.getElementById("fps"));
-const messagesEl = /** @type {HTMLOListElement} */ (document.getElementById("messages"));
-const helpEl = /** @type {Element} */ (document.getElementById("help"));
 
 const MSG_LEVEL_INFO = 'info';
 const MSG_LEVEL_WARNING = 'warn';
@@ -1391,8 +1403,94 @@ function setThreshold(newThreshold) {
     setUrlParams();
 }
 
+/**
+ * 
+ * @param {number} x 
+ */
+function setPositionX(x) {
+    if (!isFinite(x)) {
+        throw new Error(`illegal x-position: ${x}`);
+    }
+
+    if (x !== viewPort.x) {
+        viewPort.x = x;
+        redraw();
+        setUrlParams();
+    }
+}
+
+/**
+ * 
+ * @param {number} y 
+ */
+function setPositionY(y) {
+    if (!isFinite(y)) {
+        throw new Error(`illegal y-position: ${y}`);
+    }
+
+    if (y !== viewPort.y) {
+        viewPort.y = y;
+        redraw();
+        setUrlParams();
+    }
+}
+
+/**
+ * 
+ * @param {number} z 
+ */
+function setZoom(z) {
+    if (!isFinite(z) || z <= 0) {
+        throw new Error(`illegal zoom value: ${z}`);
+    }
+    z = 1/z;
+
+    if (z !== viewPort.z) {
+        viewPort.z = z;
+        redraw();
+        setUrlParams();
+    }
+}
+
+/**
+ * 
+ * @param {number} cr 
+ */
+function setCReal(cr) {
+    if (!isFinite(cr)) {
+        throw new Error(`illegal real component of C: ${cr}`);
+    }
+
+    if (cr !== viewPort.cr) {
+        viewPort.cr = cr;
+        redraw();
+        setUrlParams();
+    }
+}
+
+/**
+ * 
+ * @param {number} ci 
+ */
+function setCImaginary(ci) {
+    if (!isFinite(ci)) {
+        throw new Error(`illegal imaginary component of C: ${ci}`);
+    }
+
+    if (ci !== viewPort.ci) {
+        viewPort.ci = ci;
+        redraw();
+        setUrlParams();
+    }
+}
+
 const debouncedSetIterations = debounce(setIterations, INPUT_THROTTLE_MS);
 const debouncedSetThreshold = debounce(setThreshold, INPUT_THROTTLE_MS);
+const debouncedSetPositionX = debounce(setPositionX, INPUT_THROTTLE_MS);
+const debouncedSetPositionY = debounce(setPositionY, INPUT_THROTTLE_MS);
+const debouncedSetZoom = debounce(setZoom, INPUT_THROTTLE_MS);
+const debouncedSetCReal = debounce(setCReal, INPUT_THROTTLE_MS);
+const debouncedSetCImaginary = debounce(setCImaginary, INPUT_THROTTLE_MS);
 
 /**
  * 
@@ -1588,14 +1686,29 @@ function setUrlParams() {
     if (smooth !== DEFAULT_SMOOTH) {
         params.push(`smooth=${smooth}`);
     }
+    const { x, y, z, cr, ci } = viewPort;
     const query = params.join('&');
-    const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;
+    const hash = `#!${x},${y},${z},${cr},${ci}`;
 
     history.pushState(null, '', `?${query}${hash}`);
 }
 
-const throttledSetUrlParams = throttle(setUrlParams, INPUT_THROTTLE_MS);
+function setInputParams() {
+    const { x, y, z, cr, ci } = viewPort;
+    xInputEl.value = String(x);
+    yInputEl.value = String(y);
+    zoomInputEl.value = String(1/z);
+    crInputEl.value = String(cr);
+    ciInputEl.value = String(ci);
+}
+
+function updateParams() {
+    setUrlParams();
+    setInputParams();
+}
+
 const debouncedSetUrlParams = debounce(setUrlParams, INPUT_THROTTLE_MS);
+const debouncedUpdateParams = debounce(updateParams, INPUT_THROTTLE_MS);
 
 getUrlHash();
 
@@ -1662,7 +1775,7 @@ window.onmousedown = function (event) {
  */
 window.onmouseup = function (event) {
     if (!grabbing || (event.buttons & 1)) return;
-    debouncedSetUrlParams();
+    debouncedUpdateParams();
     if (!touching) {
         fpsEl.classList.add('hidden');
     }
@@ -1842,7 +1955,7 @@ window.addEventListener('touchmove', function (event) {
  */
 function handleTouchEnd (event) {
     event.preventDefault();
-    debouncedSetUrlParams();
+    debouncedUpdateParams();
 
     for (const touch of event.changedTouches) {
         activeTouches.delete(touch.identifier);
@@ -1872,7 +1985,7 @@ window.onkeydown = function (event) {
                     break;
                 }
                 viewPort.z /= event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
-                debouncedSetUrlParams();
+                debouncedUpdateParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -1882,7 +1995,7 @@ window.onkeydown = function (event) {
                     break;
                 }
                 viewPort.z *= event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
-                debouncedSetUrlParams();
+                debouncedUpdateParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -1920,8 +2033,8 @@ window.onkeydown = function (event) {
                     showMessage(`increased iterations to ${iterations}`);
                     updateShader();
                     redraw();
-                    debouncedSetUrlParams();
-                    /** @type {HTMLInputElement} */ (document.getElementById('iterations-input')).value = String(iterations);
+                    debouncedUpdateParams();
+                    iterationsInputEl.value = String(iterations);
                 }
                 event.preventDefault();
                 break;
@@ -1943,8 +2056,8 @@ window.onkeydown = function (event) {
                     showMessage(`decreased iterations to ${iterations}`);
                     updateShader();
                     redraw();
-                    debouncedSetUrlParams();
-                    /** @type {HTMLInputElement} */ (document.getElementById('iterations-input')).value = String(iterations);
+                    debouncedUpdateParams();
+                    iterationsInputEl.value = String(iterations);
                 }
                 event.preventDefault();
                 break;
@@ -1970,8 +2083,8 @@ window.onkeydown = function (event) {
                     showMessage(`increased threshold to ${threshold}`);
                     updateShader();
                     redraw();
-                    debouncedSetUrlParams();
-                    /** @type {HTMLInputElement} */ (document.getElementById('threshold-input')).value = String(threshold);
+                    debouncedUpdateParams();
+                    thresholdInputEl.value = String(threshold);
                 }
                 event.preventDefault();
                 break;
@@ -1997,8 +2110,8 @@ window.onkeydown = function (event) {
                     showMessage(`decreased threshold to ${threshold}`);
                     updateShader();
                     redraw();
-                    debouncedSetUrlParams();
-                    /** @type {HTMLInputElement} */ (document.getElementById('threshold-input')).value = String(threshold);
+                    debouncedUpdateParams();
+                    thresholdInputEl.value = String(threshold);
                 }
                 event.preventDefault();
                 break;
@@ -2140,7 +2253,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.x += (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
-                debouncedSetUrlParams();
+                debouncedUpdateParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -2161,7 +2274,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.x -= (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
-                debouncedSetUrlParams();
+                debouncedUpdateParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -2175,7 +2288,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.y += (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
-                debouncedSetUrlParams();
+                debouncedUpdateParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -2189,7 +2302,7 @@ window.onkeydown = function (event) {
                 } else {
                     viewPort.y -= (event.shiftKey ? 0.01 : 0.1) * viewPort.z;
                 }
-                debouncedSetUrlParams();
+                debouncedUpdateParams();
                 redraw();
                 event.preventDefault();
                 break;
@@ -2222,7 +2335,7 @@ window.onkeydown = function (event) {
                 }
 
                 redraw();
-                setUrlParams();
+                updateParams();
                 event.preventDefault();
                 break;
             }
@@ -2231,9 +2344,8 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
-                const fractalEl = /** @type {HTMLSelectElement} */ (document.getElementById('fractal-input'));
-                const index = (fractalEl.options.selectedIndex + 1) % fractalEl.options.length;
-                const value = fractalEl.options[index].value;
+                const index = (fractalInputEl.options.selectedIndex + 1) % fractalInputEl.options.length;
+                const value = fractalInputEl.options[index].value;
                 fractal = value;
                 const name = document.title = FRACTAL_NAMES[fractal] || fractal;
                 if (event.shiftKey) {
@@ -2246,8 +2358,8 @@ window.onkeydown = function (event) {
                 }
                 updateShader();
                 redraw();
-                setUrlParams();
-                fractalEl.value = fractal;
+                updateParams();
+                fractalInputEl.value = fractal;
                 showMessage(`showing ${name} fractal`);
                 event.preventDefault();
                 break;
@@ -2257,12 +2369,11 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
-                const fractalEl = /** @type {HTMLSelectElement} */ (document.getElementById('fractal-input'));
-                let index = (fractalEl.options.selectedIndex - 1) % fractalEl.options.length;
+                let index = (fractalInputEl.options.selectedIndex - 1) % fractalInputEl.options.length;
                 if (index < 0) {
-                    index += fractalEl.options.length;
+                    index += fractalInputEl.options.length;
                 }
-                const value = fractalEl.options[index].value;
+                const value = fractalInputEl.options[index].value;
                 fractal = value;
                 const name = document.title = FRACTAL_NAMES[fractal];
                 if (event.shiftKey) {
@@ -2275,8 +2386,8 @@ window.onkeydown = function (event) {
                 }
                 updateShader();
                 redraw();
-                setUrlParams();
-                fractalEl.value = fractal;
+                updateParams();
+                fractalInputEl.value = fractal;
                 showMessage(`showing ${name} fractal`);
                 event.preventDefault();
                 break;
@@ -2321,7 +2432,7 @@ window.onkeydown = function (event) {
                 } else {
                     toggleColorSpace();
                     setUrlParams();
-                    /** @type {HTMLInputElement} */ (document.getElementById('colorspace-input')).value = gl.drawingBufferColorSpace;
+                    colorSpaceInputEl.value = gl.drawingBufferColorSpace;
                     event.preventDefault();
                 }
                 break;
@@ -2351,7 +2462,7 @@ window.onkeydown = function (event) {
                 redraw();
                 setUrlParams();
                 showMessage(smooth ? 'turned smoothing on' : 'turned smoothing off', MSG_LEVEL_INFO);
-                /** @type {HTMLInputElement} */ (document.getElementById('smooth-input')).checked = smooth;
+                smoothInputEl.checked = smooth;
                 event.preventDefault();
                 break;
 
@@ -2433,7 +2544,7 @@ window.addEventListener('wheel', function (event) {
     viewPort.y -= dy * z1 - dy * z2;
     viewPort.z = z2;
 
-    debouncedSetUrlParams();
+    debouncedUpdateParams();
     redraw();
 }, { passive: false });
 
@@ -2446,10 +2557,10 @@ function toggleHelp() {
 }
 
 function showHelp() {
-    /** @type {HTMLInputElement} */ (document.getElementById('fractal-input')).value = fractal;
-    /** @type {HTMLInputElement} */ (document.getElementById('iterations-input')).value = String(iterations);
-    /** @type {HTMLInputElement} */ (document.getElementById('threshold-input')).value = String(threshold);
-    /** @type {HTMLInputElement} */ (document.getElementById('colorspace-input')).value = gl.drawingBufferColorSpace;
+    fractalInputEl.value = fractal;
+    iterationsInputEl.value = String(iterations);
+    thresholdInputEl.value = String(threshold);
+    colorSpaceInputEl.value = gl.drawingBufferColorSpace;
     helpEl.classList.remove('hidden');
 }
 
