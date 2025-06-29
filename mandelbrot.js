@@ -115,7 +115,7 @@ function glslColorRGB8(r, g, b, a) {
 }
 
 /**
- * @template F
+ * @template {function} F
  * @param {F} func
  * @param {number} delay
  * @returns {F}
@@ -125,7 +125,7 @@ function throttle(func, delay) {
     let self = null;
     let timer = null;
 
-    return function () {
+    return /** @type {F} */ (/** @type {unknown} */ (function () {
         if (timer === null) {
             timer = setTimeout(function () {
                 timer = null;
@@ -145,11 +145,11 @@ function throttle(func, delay) {
             args = arguments;
             self = this;
         }
-    };
+    }));
 }
 
 /**
- * @template F
+ * @template {function} F
  * @param {F} func
  * @param {number} delay
  * @returns {F}
@@ -159,7 +159,7 @@ function debounce(func, delay) {
     let self = null;
     let timer = null;
 
-    return function () {
+    return /** @type {F} */ (/** @type {unknown} */ (function () {
         if (timer !== null) {
             clearTimeout(timer);
         }
@@ -175,7 +175,7 @@ function debounce(func, delay) {
                 self = null;
             }
         }, delay);
-    };
+    }));
 }
 
 const FRACTAL_NAMES = {
@@ -213,7 +213,7 @@ const colorSpaceParam = (params.get('colorspace') || '').trim() || DEFAULT_COLOR
 let smooth = (params.get('smooth') || '').trim().toLowerCase() !== 'false';
 let fractal = (params.get('fractal') || '').trim().toLowerCase() || 'mandelbrot';
 let hasComplexParam = false;
-let animationFPS = parseFloat(params.get('fps'));
+let animationFPS = parseFloat(params.get('fps') ?? '');
 
 if (!isFinite(animationFPS) || animationFPS < 0) {
     animationFPS = DEFAULT_FPS;
@@ -221,8 +221,8 @@ if (!isFinite(animationFPS) || animationFPS < 0) {
     animationFPS = MAX_FPS;
 }
 
-document.getElementById('fps-input').value = animationFPS;
-document.getElementById('smooth-input').checked = smooth;
+/** @type {HTMLInputElement} */ (document.getElementById('fps-input')).value = String(animationFPS);
+/** @type {HTMLInputElement} */ (document.getElementById('smooth-input')).checked = smooth;
 
 let iterations = iterationsParam ? nanColesce(clamp(parseInt(iterationsParam, 10), 0, MAX_ITERATIONS), DEFAULT_ITERATIONS) : DEFAULT_ITERATIONS;
 let threshold = thresholdParam ? nanColesce(clamp(parseFloat(thresholdParam), 0, MAX_THRESHOLD), DEFAULT_THRESHOLD) : DEFAULT_THRESHOLD;
@@ -1248,15 +1248,15 @@ const FRACTALS = {
 
 let colors = colorsParam === 'horizon' ? 'horizonS' : colorsParam;
 let colorCode = COLOR_CODES[colors] || COLOR_CODES[DEFAULT_COLORS];
-document.getElementById('color-code-preset').value = colors || DEFAULT_COLORS;
-document.getElementById('color-code').value = COLOR_CODES.custom;
+/** @type {HTMLInputElement} */ (document.getElementById('color-code-preset')).value = colors || DEFAULT_COLORS;
+/** @type {HTMLInputElement} */ (document.getElementById('color-code')).value = COLOR_CODES.custom;
 
 if (colors === 'custom') {
-    document.getElementById('derive-custom-color-code-row').classList.add('hidden');
-    document.getElementById('custom-color-code-row').classList.remove('hidden');
+    /** @type {HTMLInputElement} */ (document.getElementById('derive-custom-color-code-row')).classList.add('hidden');
+    /** @type {HTMLInputElement} */ (document.getElementById('custom-color-code-row')).classList.remove('hidden');
 } else {
-    document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
-    document.getElementById('custom-color-code-row').classList.add('hidden');
+    /** @type {HTMLInputElement} */ (document.getElementById('derive-custom-color-code-row')).classList.remove('hidden');
+    /** @type {HTMLInputElement} */ (document.getElementById('custom-color-code-row')).classList.add('hidden');
 }
 
 /**
@@ -1264,7 +1264,7 @@ if (colors === 'custom') {
  * @param {number} offset 
  */
 function cycleColors(offset) {
-    const presets = document.getElementById('color-code-preset');
+    const presets = /** @type {HTMLSelectElement} */ (document.getElementById('color-code-preset'));
     let index = (presets.options.selectedIndex + offset) % presets.options.length;
     if (index < 0) {
         index += presets.options.length;
@@ -1272,23 +1272,23 @@ function cycleColors(offset) {
     const value = presets.options[index].value;
     presets.value = value;
     if (value === 'custom') {
-        setColorCode(document.getElementById('color-code').value);
-        document.getElementById('derive-custom-color-code-row').classList.add('hidden');
-        document.getElementById('custom-color-code-row').classList.remove('hidden');
+        setColorCode(/** @type {HTMLTextAreaElement} */ (document.getElementById('color-code')).value);
+        /** @type {Element} */ (document.getElementById('derive-custom-color-code-row')).classList.add('hidden');
+        /** @type {Element} */ (document.getElementById('custom-color-code-row')).classList.remove('hidden');
     } else {
         setColorCode(COLOR_CODES[value]);
-        document.getElementById('derive-custom-color-code-row').classList.remove('hidden');
-        document.getElementById('custom-color-code-row').classList.add('hidden');
+        /** @type {Element} */ (document.getElementById('derive-custom-color-code-row')).classList.remove('hidden');
+        /** @type {Element} */ (document.getElementById('custom-color-code-row')).classList.add('hidden');
     }
     colors = value;
     setUrlParams();
     showMessage(`set colors to ${presets.options[index].label}`, MSG_LEVEL_INFO);
 }
 
-const canvas = document.getElementById("canvas");
-const fpsEl = document.getElementById("fps");
-const messagesEl = document.getElementById("messages");
-const helpEl = document.getElementById("help");
+const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById("canvas"));
+const fpsEl = /** @type {Element} */ (document.getElementById("fps"));
+const messagesEl = /** @type {HTMLOListElement} */ (document.getElementById("messages"));
+const helpEl = /** @type {Element} */ (document.getElementById("help"));
 
 const MSG_LEVEL_INFO = 'info';
 const MSG_LEVEL_WARNING = 'warn';
@@ -1403,6 +1403,12 @@ function saveScreenshotBlob() {
         try {
             const filename = `${FRACTAL_NAMES[fractal] || fractal}.png`;
             canvas.toBlob(blob => {
+                if (!blob) {
+                    const msg = 'Error saving screenshot, received null BLOB!';
+                    showMessage(msg, MSG_LEVEL_ERROR);
+                    reject(new Error(msg));
+                    return;
+                }
                 try {
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
@@ -1585,7 +1591,7 @@ function setUrlParams() {
     const query = params.join('&');
     const hash = `#!${viewPort.x},${viewPort.y},${viewPort.z},${viewPort.cr},${viewPort.ci}`;
 
-    history.pushState(null, null, `?${query}${hash}`);
+    history.pushState(null, '', `?${query}${hash}`);
 }
 
 const throttledSetUrlParams = throttle(setUrlParams, INPUT_THROTTLE_MS);
@@ -1593,6 +1599,9 @@ const debouncedSetUrlParams = debounce(setUrlParams, INPUT_THROTTLE_MS);
 
 getUrlHash();
 
+/**
+ * @param {HashChangeEvent} event 
+ */
 window.onhashchange = function (event) {
     const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1 } = viewPort;
     getUrlHash();
@@ -1734,9 +1743,10 @@ let doubleTapTimeout = null;
  * @param {TouchEvent} event 
  */
 window.addEventListener('touchstart', function (event) {
-    const isHelp = event.target === helpEl || (
-        helpEl.compareDocumentPosition(event.target) & Node.DOCUMENT_POSITION_CONTAINED_BY
-    ) !== 0;
+    const target = event.target;
+    const isHelp = target === helpEl || (target instanceof Node && (
+        helpEl.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_CONTAINED_BY
+    ) !== 0);
 
     if (!isHelp) {
         event.preventDefault();
@@ -1911,7 +1921,7 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
-                    document.getElementById('iterations-input').value = iterations;
+                    /** @type {HTMLInputElement} */ (document.getElementById('iterations-input')).value = String(iterations);
                 }
                 event.preventDefault();
                 break;
@@ -1934,7 +1944,7 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
-                    document.getElementById('iterations-input').value = iterations;
+                    /** @type {HTMLInputElement} */ (document.getElementById('iterations-input')).value = String(iterations);
                 }
                 event.preventDefault();
                 break;
@@ -1961,7 +1971,7 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
-                    document.getElementById('threshold-input').value = threshold;
+                    /** @type {HTMLInputElement} */ (document.getElementById('threshold-input')).value = String(threshold);
                 }
                 event.preventDefault();
                 break;
@@ -1988,7 +1998,7 @@ window.onkeydown = function (event) {
                     updateShader();
                     redraw();
                     debouncedSetUrlParams();
-                    document.getElementById('threshold-input').value = threshold;
+                    /** @type {HTMLInputElement} */ (document.getElementById('threshold-input')).value = String(threshold);
                 }
                 event.preventDefault();
                 break;
@@ -2048,14 +2058,18 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
-                if (animation && animation.length > 0) {
+                if (animation) {
                     const framenr = animation.length;
                     const item = animation.pop();
-                    if (animation.length === 0) {
-                        animation = null;
+                    if (item) {
+                        if (animation.length === 0) {
+                            animation = null;
+                        }
+                        setUrlParams();
+                        showMessage(`removed key-frame #${framenr}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
+                    } else {
+                        showMessage('no more key-frames to remove');
                     }
-                    setUrlParams();
-                    showMessage(`removed key-frame #${framenr}: ${item.x}, ${item.y}, ${item.z}, ${item.d}, ${item.cr}, ${item.ci}`);
                 } else {
                     showMessage('no more key-frames to remove');
                 }
@@ -2101,7 +2115,7 @@ window.onkeydown = function (event) {
                 }
                 if (animation && animation.length > 0) {
                     const item = animation[animation.length - 1];
-                    item.d = Math.max(0, item.d - event.altKey ? 100 : 1000);
+                    item.d = Math.max(0, item.d - (event.altKey ? 100 : 1000));
                     setUrlParams();
                     showMessage(`decreased duration of key-frame #${animation.length} to ${item.d}`);
                 } else {
@@ -2217,7 +2231,7 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
-                const fractalEl = document.getElementById('fractal-input');
+                const fractalEl = /** @type {HTMLSelectElement} */ (document.getElementById('fractal-input'));
                 const index = (fractalEl.options.selectedIndex + 1) % fractalEl.options.length;
                 const value = fractalEl.options[index].value;
                 fractal = value;
@@ -2243,7 +2257,7 @@ window.onkeydown = function (event) {
                 if (event.altKey || event.metaKey || event.ctrlKey) {
                     break;
                 }
-                const fractalEl = document.getElementById('fractal-input');
+                const fractalEl = /** @type {HTMLSelectElement} */ (document.getElementById('fractal-input'));
                 let index = (fractalEl.options.selectedIndex - 1) % fractalEl.options.length;
                 if (index < 0) {
                     index += fractalEl.options.length;
@@ -2307,7 +2321,7 @@ window.onkeydown = function (event) {
                 } else {
                     toggleColorSpace();
                     setUrlParams();
-                    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
+                    /** @type {HTMLInputElement} */ (document.getElementById('colorspace-input')).value = gl.drawingBufferColorSpace;
                     event.preventDefault();
                 }
                 break;
@@ -2337,7 +2351,7 @@ window.onkeydown = function (event) {
                 redraw();
                 setUrlParams();
                 showMessage(smooth ? 'turned smoothing on' : 'turned smoothing off', MSG_LEVEL_INFO);
-                document.getElementById('smooth-input').checked = smooth;
+                /** @type {HTMLInputElement} */ (document.getElementById('smooth-input')).checked = smooth;
                 event.preventDefault();
                 break;
 
@@ -2432,10 +2446,10 @@ function toggleHelp() {
 }
 
 function showHelp() {
-    document.getElementById('fractal-input').value = fractal;
-    document.getElementById('iterations-input').value = iterations;
-    document.getElementById('threshold-input').value = threshold;
-    document.getElementById('colorspace-input').value = gl.drawingBufferColorSpace;
+    /** @type {HTMLInputElement} */ (document.getElementById('fractal-input')).value = fractal;
+    /** @type {HTMLInputElement} */ (document.getElementById('iterations-input')).value = String(iterations);
+    /** @type {HTMLInputElement} */ (document.getElementById('threshold-input')).value = String(threshold);
+    /** @type {HTMLInputElement} */ (document.getElementById('colorspace-input')).value = gl.drawingBufferColorSpace;
     helpEl.classList.remove('hidden');
 }
 
@@ -2455,14 +2469,17 @@ function toggleColorSpace() {
  * @param {WebGL2RenderingContext} gl 
  * @param {number} shaderType 
  * @param {string} sourceCode 
- * @returns {WebGLShader | null}
+ * @returns {WebGLShader}
  */
 function createShader(gl, shaderType, sourceCode) {
     const shader = gl.createShader(shaderType);
+    if (!shader) {
+        throw new Error(`Failed to create shader of type ${shaderType}`);
+    }
     gl.shaderSource(shader, sourceCode.trim());
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        throw new Error(gl.getShaderInfoLog(shader));
+        throw new Error(gl.getShaderInfoLog(shader) ?? `Failed to compile ${shaderType} shader:\n\n${sourceCode}`);
     }
     return shader;
 }
@@ -2470,9 +2487,12 @@ function createShader(gl, shaderType, sourceCode) {
 function setup() {
     document.title = FRACTAL_NAMES[fractal] || FRACTAL_NAMES.mandelbrot;
 
-    gl = canvas.getContext("webgl2");
-    if (!gl) {
-        throw new TypeError("WebGL2 not supported!");
+    {
+        const ctx = canvas.getContext("webgl2");
+        if (!ctx) {
+            throw new TypeError("WebGL2 not supported!");
+        }
+        gl = ctx;
     }
 
     if (colorSpaceParam === 'srgb' || colorSpaceParam === 'display-p3') {
@@ -2527,7 +2547,7 @@ function setup() {
     function linkProgram () {
         gl.linkProgram(program);
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            throw new Error(gl.getProgramInfoLog(program));
+            throw new Error(gl.getProgramInfoLog(program) ?? 'Failed to link shader program');
         }
 
         vertexPosition = gl.getAttribLocation(program, 'vertexPosition');
@@ -2606,7 +2626,7 @@ function stopAnimation() {
 /**
  * 
  * @param {AnimationFrame[]|null} animation 
- * @param {boolean} loop 
+ * @param {boolean=} loop 
  * @returns {void}
  */
 function playAnimation(animation, loop) {
@@ -2642,7 +2662,10 @@ function playAnimation(animation, loop) {
 
     function animateFrame() {
         const now = Date.now();
-        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1, _ } = animation[animationIndex];
+        if (!animation) {
+            return;
+        }
+        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1    } = animation[animationIndex];
         const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = animation[animationIndex + 1];
         const dt = now - timestamp;
         let interp = dt / d;
@@ -2698,16 +2721,20 @@ function playAnimation(animation, loop) {
     queueNextFrame();
 }
 
-try {
-    setup();
-    if (animation) {
-        playAnimation(animation);
-    } else {
-        redraw();
-        showCursor();
-        showMessage('Press H for settings and a list of hotkeys. On mobile tripple tap.');
+function main() {
+    try {
+        setup();
+        if (animation) {
+            playAnimation(animation);
+        } else {
+            redraw();
+            showCursor();
+            showMessage('Press H for settings and a list of hotkeys. On mobile tripple tap.');
+        }
+    } catch (error) {
+        console.error(error);
+        showMessage(`Error initializing: ${error}`, MSG_LEVEL_ERROR);
     }
-} catch (error) {
-    console.error(error);
-    showMessage(`Error initializing: ${error}`, MSG_LEVEL_ERROR);
 }
+
+main();
