@@ -270,6 +270,44 @@ let animation = animationParam ? animationParam.split(/\s+/).map(
     }
 ) : null;
 
+let recording = false;
+let lastRecordedTS = 0;
+
+function recordFrameIfRecording() {
+    if (recording) {
+        const now = Date.now();
+
+        if (!animation) {
+            animation = [];
+        }
+
+        const { x, y, z, cr, ci } = viewPort;
+        const d = now - lastRecordedTS;
+
+        /** @type {AnimationFrame} */
+        let prevFrame;
+
+        if (animation.length >= 2 &&
+            (prevFrame = animation[animation.length - 1]).x === x &&
+            prevFrame.y == y &&
+            prevFrame.z == z &&
+            prevFrame.cr == cr &&
+            prevFrame.ci == ci &&
+            (prevFrame = animation[animation.length - 2]).x === x &&
+            prevFrame.y == y &&
+            prevFrame.z == z &&
+            prevFrame.cr == cr &&
+            prevFrame.ci == ci
+        ) {
+            animation[animation.length - 1].d += d;
+        } else {
+            const item = { x, y, z, cr, ci, d };
+            animation.push(item);
+        }
+        lastRecordedTS = now;
+    }
+}
+
 const ZOOM_FACTOR = 1.25;
 const SMALL_ZOOM_FACTOR = 1.025;
 
@@ -1811,6 +1849,7 @@ window.onmousemove = function (event) {
             viewPort.y += dy / canvas.height * viewPort.z;
         }
         redraw();
+        recordFrameIfRecording();
     }
     mousePos.x = x;
     mousePos.y = y;
@@ -1948,6 +1987,7 @@ window.addEventListener('touchmove', function (event) {
     }
 
     redraw();
+    recordFrameIfRecording();
 }, { passive: false });
 
 /**
@@ -1987,6 +2027,7 @@ window.onkeydown = function (event) {
                 viewPort.z /= event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
                 debouncedUpdateParams();
                 redraw();
+                recordFrameIfRecording();
                 event.preventDefault();
                 break;
 
@@ -1997,6 +2038,7 @@ window.onkeydown = function (event) {
                 viewPort.z *= event.shiftKey ? SMALL_ZOOM_FACTOR : ZOOM_FACTOR;
                 debouncedUpdateParams();
                 redraw();
+                recordFrameIfRecording();
                 event.preventDefault();
                 break;
 
@@ -2237,6 +2279,23 @@ window.onkeydown = function (event) {
                 event.preventDefault();
                 break;
 
+            case 'r':
+                if (recording) {
+                    recording = false;
+                    showMessage(`Stopped recording`);
+                    recordFrameIfRecording();
+                } else {
+                    recording = true;
+                    lastRecordedTS = Date.now();
+                    if (!animation) {
+                        animation = [];
+                    }
+                    showMessage(`Started recording`);
+                    recordFrameIfRecording();
+                }
+                event.preventDefault();
+                break;
+
             case 'ArrowRight':
                 if (event.metaKey) {
                     break;
@@ -2276,6 +2335,7 @@ window.onkeydown = function (event) {
                 }
                 debouncedUpdateParams();
                 redraw();
+                recordFrameIfRecording();
                 event.preventDefault();
                 break;
 
@@ -2290,6 +2350,7 @@ window.onkeydown = function (event) {
                 }
                 debouncedUpdateParams();
                 redraw();
+                recordFrameIfRecording();
                 event.preventDefault();
                 break;
 
@@ -2304,6 +2365,7 @@ window.onkeydown = function (event) {
                 }
                 debouncedUpdateParams();
                 redraw();
+                recordFrameIfRecording();
                 event.preventDefault();
                 break;
 
@@ -2546,6 +2608,7 @@ window.addEventListener('wheel', function (event) {
 
     debouncedUpdateParams();
     redraw();
+    recordFrameIfRecording();
 }, { passive: false });
 
 function toggleHelp() {
@@ -2702,7 +2765,7 @@ function setup() {
 
         gl.uniform2f(canvasSizeUniform, w, h);
         gl.uniform3f(viewPortUniform,
-            viewPort.x - 0.5 * canvas.width / canvas.height * viewPort.z,
+            viewPort.x - 0.5 * w / h * viewPort.z,
             viewPort.y - 0.5 * viewPort.z,
             viewPort.z
         );
@@ -2718,7 +2781,7 @@ function setup() {
         const fpsVal = 1 / duration;
         fpsEl.innerHTML = `${fpsVal > 1.0 ? Math.round(fpsVal) : fpsVal.toFixed(1)} fps`;
         timestamp = now;
-    }
+    };
 }
 
 function stopAnimation() {
@@ -2763,6 +2826,7 @@ function playAnimation(animation, loop) {
 
     if (!animation || animation.length < 2) {
         animating = false;
+        console.log("stopping animation");
         return;
     }
 
@@ -2776,47 +2840,61 @@ function playAnimation(animation, loop) {
         if (!animation) {
             return;
         }
-        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1    } = animation[animationIndex];
-        const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = animation[animationIndex + 1];
-        const dt = now - timestamp;
-        let interp = dt / d;
-        if (interp > 1) {
-            viewPort.x = x2;
-            viewPort.y = y2;
-            viewPort.z = z2;
-            viewPort.cr = cr2;
-            viewPort.ci = ci2;
-            timestamp = now;
-            ++ animationIndex;
-            if (animationIndex + 1 >= animation.length) {
+        let dt = now - timestamp;
+        const prevAnimationIndex = animationIndex;
+
+        let nextAnimationIndex = animationIndex;
+        for (;;) {
+            animationIndex = nextAnimationIndex;
+            ++ nextAnimationIndex;
+            if (nextAnimationIndex >= animation.length) {
                 if (loop) {
-                    animationIndex = 0;
+                    nextAnimationIndex = 0;
                 } else {
                     animating = false;
                     animationTimer = null;
+                    const lastFrame = animation[animation.length - 1];
+                    viewPort.x = lastFrame.x;
+                    viewPort.y = lastFrame.y;
+                    viewPort.z = lastFrame.z;
+                    viewPort.cr = lastFrame.cr;
+                    viewPort.ci = lastFrame.ci;
+                    redraw();
+                    console.log("stopping animation");
+                    return;
                 }
             }
-            if (animating) {
-                queueNextFrame();
+            const { d } = animation[nextAnimationIndex];
+            if (d >= dt) {
+                break;
             }
-            redraw();
-        } else if (x1 !== x2 || y1 !== y2 || z1 !== z2 || cr1 !== cr2 || ci1 !== ci2) {
-            interp = (
-                z1 > z2 ? 1.0 - Math.pow(1.0 - interp, 16) :
-                z1 < z2 ? Math.pow(interp, 16) :
-                interp
-            );
-            const inv = 1.0 - interp;
-            viewPort.x = x1 * inv + x2 * interp;
-            viewPort.y = y1 * inv + y2 * interp;
-            viewPort.z = z1 * inv + z2 * interp;
-            viewPort.cr = cr1 * inv + cr2 * interp;
-            viewPort.ci = ci1 * inv + ci2 * interp;
-            if (animating) {
-                queueNextFrame();
-            }
-            redraw();
+            dt -= d;
         }
+
+        if (prevAnimationIndex !== animationIndex) {
+            timestamp = now;
+        }
+
+        const { x: x1, y: y1, z: z1, cr: cr1, ci: ci1 } = animation[animationIndex];
+        const { x: x2, y: y2, z: z2, cr: cr2, ci: ci2, d } = animation[nextAnimationIndex];
+
+        let interp = dt / d;
+        interp = (
+            z1 > z2 ? 1.0 - Math.pow(1.0 - interp, 16) :
+            z1 < z2 ? Math.pow(interp, 16) :
+            interp
+        );
+        const inv = 1.0 - interp;
+        viewPort.x = x1 * inv + x2 * interp;
+        viewPort.y = y1 * inv + y2 * interp;
+        viewPort.z = z1 * inv + z2 * interp;
+        viewPort.cr = cr1 * inv + cr2 * interp;
+        viewPort.ci = ci1 * inv + ci2 * interp;
+
+        if (animating) {
+            queueNextFrame();
+        }
+        redraw();
     }
 
     function queueNextFrame() {
